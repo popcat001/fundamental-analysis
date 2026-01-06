@@ -22,34 +22,50 @@ class DataService:
         Get financial data for a symbol, using cache if available and fresh
         """
         symbol = symbol.upper()
+        logger.info(f"Starting get_financial_data for {symbol}")
 
-        # Check if company exists in database
-        company = self._get_or_create_company(symbol)
+        try:
+            # Check if company exists in database
+            logger.info(f"Getting or creating company record for {symbol}")
+            company = self._get_or_create_company(symbol)
 
-        # Check cache
-        cached_data = self._get_cached_data(symbol)
+            # Check cache
+            logger.info(f"Checking cached data for {symbol}")
+            cached_data = self._get_cached_data(symbol)
 
-        # Check if cached data is fresh
-        if cached_data and self._is_data_fresh(cached_data):
-            logger.info(f"Returning cached data for {symbol}")
-            return self._format_data(cached_data)
+            # Check if cached data is fresh
+            if cached_data and self._is_data_fresh(cached_data):
+                logger.info(f"Returning cached data for {symbol}")
+                return self._format_data(cached_data)
 
-        # Fetch fresh data from API
-        logger.info(f"Fetching fresh data for {symbol}")
-        fresh_data = self._fetch_from_api(symbol)
+            # Fetch fresh data from API
+            logger.info(f"Fetching fresh data for {symbol}")
+            fresh_data = self._fetch_from_api(symbol)
 
-        if fresh_data:
-            # Store in cache
-            self._store_in_cache(symbol, fresh_data)
-            return self._format_data(fresh_data)
+            if fresh_data:
+                # Store in cache
+                logger.info(f"Storing {len(fresh_data)} quarters in cache for {symbol}")
+                self._store_in_cache(symbol, fresh_data)
+                logger.info(f"Successfully stored data for {symbol}")
+                # Fetch back from cache to get FinancialData objects for formatting
+                cached_data = self._get_cached_data(symbol)
+                return self._format_data(cached_data)
 
-        # If API fetch failed but we have stale cached data, return it
-        if cached_data:
-            logger.warning(f"API fetch failed, returning stale cached data for {symbol}")
-            return self._format_data(cached_data)
+            # If API fetch failed but we have stale cached data, return it
+            if cached_data:
+                logger.warning(f"API fetch failed, returning stale cached data for {symbol}")
+                return self._format_data(cached_data)
 
-        # No data available
-        raise ValueError(f"Unable to retrieve data for ticker {symbol}")
+            # No data available
+            logger.error(f"No data available for {symbol}")
+            raise ValueError(f"Unable to retrieve data for ticker {symbol}")
+
+        except ValueError:
+            # Re-raise ValueError as-is (404 error)
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error in get_financial_data for {symbol}: {type(e).__name__}: {str(e)}", exc_info=True)
+            raise
 
     def _get_or_create_company(self, symbol: str) -> Company:
         """Get or create a company record"""
@@ -94,18 +110,26 @@ class DataService:
         balance_sheet_data = self.api_client.get_balance_sheet(symbol)
 
         if not income_data:
+            logger.warning(f"No income statement data returned for {symbol}")
             return []
+
+        logger.info(f"Processing {len(income_data)} quarters for {symbol}")
 
         # Combine data from all three statements
         combined_data = []
 
-        for income in income_data[:8]:  # Get last 8 quarters
+        for income in income_data:  # Process all returned quarters
             date = income.get('date')
             period = income.get('period')
 
             # Find matching cash flow and balance sheet data
             cash_flow = next((cf for cf in cash_flow_data if cf.get('date') == date), {})
             balance_sheet = next((bs for bs in balance_sheet_data if bs.get('date') == date), {})
+
+            if not cash_flow:
+                logger.warning(f"No cash flow data for {symbol} on {date}")
+            if not balance_sheet:
+                logger.warning(f"No balance sheet data for {symbol} on {date}")
 
             # Calculate derived metrics
             revenue = income.get('revenue', 0)
@@ -136,37 +160,50 @@ class DataService:
             }
             combined_data.append(combined)
 
+        quarters = [d['fiscal_quarter'] for d in combined_data]
+        logger.info(f"Fetched data for {symbol}: {quarters}")
+
         return combined_data
 
     def _store_in_cache(self, symbol: str, data: List[Dict]):
         """Store financial data in database cache"""
-        # Update company last_updated timestamp
-        company = self.db.query(Company).filter(Company.ticker == symbol).first()
-        if company:
-            company.last_updated = datetime.utcnow()
+        try:
+            # Update company last_updated timestamp
+            company = self.db.query(Company).filter(Company.ticker == symbol).first()
+            if company:
+                company.last_updated = datetime.utcnow()
+                logger.info(f"Updated last_updated for {symbol}")
 
-        for record in data:
-            # Check if record already exists
-            existing = self.db.query(FinancialData).filter(
-                FinancialData.ticker == symbol,
-                FinancialData.fiscal_quarter == record['fiscal_quarter']
-            ).first()
+            for record in data:
+                # Check if record already exists
+                existing = self.db.query(FinancialData).filter(
+                    FinancialData.ticker == symbol,
+                    FinancialData.fiscal_quarter == record['fiscal_quarter']
+                ).first()
 
-            if existing:
-                # Update existing record
-                for key, value in record.items():
-                    if key != 'fiscal_quarter':
-                        setattr(existing, key, value)
-                existing.fetched_at = datetime.utcnow()
-            else:
-                # Create new record
-                financial_data = FinancialData(
-                    ticker=symbol,
-                    **record
-                )
-                self.db.add(financial_data)
+                if existing:
+                    # Update existing record
+                    logger.info(f"Updating existing record for {symbol} {record['fiscal_quarter']}")
+                    for key, value in record.items():
+                        if key != 'fiscal_quarter':
+                            setattr(existing, key, value)
+                    existing.fetched_at = datetime.utcnow()
+                else:
+                    # Create new record
+                    logger.info(f"Creating new record for {symbol} {record['fiscal_quarter']}")
+                    financial_data = FinancialData(
+                        ticker=symbol,
+                        **record
+                    )
+                    self.db.add(financial_data)
 
-        self.db.commit()
+            self.db.commit()
+            logger.info(f"Successfully committed {len(data)} records for {symbol}")
+
+        except Exception as e:
+            logger.error(f"Error storing data for {symbol}: {type(e).__name__}: {str(e)}", exc_info=True)
+            self.db.rollback()
+            raise
 
     def _format_data(self, data: List[FinancialData]) -> List[Dict]:
         """Format financial data for API response"""
@@ -212,11 +249,20 @@ class DataService:
         """Force refresh data from API, bypassing cache"""
         symbol = symbol.upper()
 
-        # Fetch fresh data
-        fresh_data = self.api_client.get_income_statement(symbol)
+        # Ensure company exists
+        self._get_or_create_company(symbol)
+
+        # Fetch fresh data from API (combines all three statements)
+        fresh_data = self._fetch_from_api(symbol)
 
         if fresh_data:
-            # Store in cache
+            # Delete old cached data for this ticker to avoid stale data
+            self.db.query(FinancialData).filter(
+                FinancialData.ticker == symbol
+            ).delete()
+            self.db.commit()
+
+            # Store fresh data in cache
             self._store_in_cache(symbol, fresh_data)
             return self._format_data(self._get_cached_data(symbol))
 

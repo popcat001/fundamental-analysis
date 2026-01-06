@@ -1,0 +1,5 @@
+GET http://localhost:8000/api/ticker/AAPL HTTP/1.1
+
+GET http://localhost:8000/api/ticker/META HTTP/1.1
+
+GET http://localhost:8000/api/ticker/TSLA HTTP/1.1

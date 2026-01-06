@@ -69,8 +69,9 @@ class FinancialAPIClient:
         try:
             response = self.session.get(url, params=params, timeout=settings.API_REQUEST_TIMEOUT)
             response.raise_for_status()
-            print(response.json())
-            return response.json()
+            data = response.json()
+            logger.info(f"Fetched {len(data)} quarters of income statement data for {symbol}")
+            return data
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to fetch income statement for {symbol}: {str(e)}")
             # Try fallback to Alpha Vantage

@@ -62,7 +62,7 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 ```bash
 cd frontend
-npm install
+bun install
 ```
 
 ## Running the Application
@@ -73,7 +73,7 @@ From the project root directory:
 
 ```bash
 cd backend
-python app.py
+uv run app.py
 ```
 
 The backend will start on http://localhost:8000
@@ -86,7 +86,7 @@ In a new terminal:
 
 ```bash
 cd frontend
-npm start
+bun start
 ```
 
 The frontend will start on http://localhost:3000
