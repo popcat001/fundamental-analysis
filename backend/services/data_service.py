@@ -30,7 +30,7 @@ class DataService:
             company = self._get_or_create_company(symbol)
 
             # Check cache
-            logger.info(f"Checking cached data for {symbol}")
+            logger.info(f"Fetch cached data from database for {symbol}")
             cached_data = self._get_cached_data(symbol)
 
             # Check if cached data is fresh
@@ -39,7 +39,7 @@ class DataService:
                 return self._format_data(cached_data)
 
             # Fetch fresh data from API
-            logger.info(f"Fetching fresh data for {symbol}")
+            logger.info(f"Fetching fresh data from API for {symbol}")
             fresh_data = self._fetch_from_api(symbol)
 
             if fresh_data:
@@ -103,8 +103,13 @@ class DataService:
         return age_days < settings.CACHE_EXPIRY_DAYS
 
     def _fetch_from_api(self, symbol: str) -> List[Dict]:
-        """Fetch fresh data from external API"""
-        # Get all three financial statements
+        """
+        Fetch fresh data from external API
+        Note: Due to Alpha Vantage rate limiting (1.5 sec between calls), this takes ~6 seconds
+        to fetch all four data sources (earnings, income, cash flow, balance sheet)
+        """
+        # Get all financial data including EPS
+        eps_data = self.api_client.get_earnings(symbol)
         income_data = self.api_client.get_income_statement(symbol)
         cash_flow_data = self.api_client.get_cash_flow_statement(symbol)
         balance_sheet_data = self.api_client.get_balance_sheet(symbol)
@@ -122,14 +127,17 @@ class DataService:
             date = income.get('date')
             period = income.get('period')
 
-            # Find matching cash flow and balance sheet data
+            # Find matching cash flow, balance sheet, and EPS data
             cash_flow = next((cf for cf in cash_flow_data if cf.get('date') == date), {})
             balance_sheet = next((bs for bs in balance_sheet_data if bs.get('date') == date), {})
+            eps_record = next((ep for ep in eps_data if ep.get('date') == date), {})
 
             if not cash_flow:
                 logger.warning(f"No cash flow data for {symbol} on {date}")
             if not balance_sheet:
                 logger.warning(f"No balance sheet data for {symbol} on {date}")
+            if not eps_record:
+                logger.warning(f"No EPS data for {symbol} on {date}")
 
             # Calculate derived metrics
             revenue = income.get('revenue', 0)
@@ -146,7 +154,7 @@ class DataService:
 
             combined = {
                 'fiscal_quarter': self._format_quarter(date, period),
-                'eps': income.get('eps', 0),
+                'eps': eps_record.get('reportedEPS', 0),
                 'free_cash_flow': free_cash_flow,
                 'gross_income': gross_profit,
                 'gross_margin': gross_margin,
@@ -156,7 +164,7 @@ class DataService:
                 'cash_balance': balance_sheet.get('cashAndCashEquivalents', 0),
                 'total_debt': (balance_sheet.get('shortTermDebt', 0) +
                               balance_sheet.get('longTermDebt', 0)),
-                'data_source': 'FMP'
+                'data_source': 'Alpha Vantage'
             }
             combined_data.append(combined)
 
