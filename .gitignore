@@ -9,3 +9,7 @@ wheels/
 # Virtual environments
 .venv
 .env
+
+# Node modules and cache
+node_modules/
+.cache/

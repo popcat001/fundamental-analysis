@@ -154,6 +154,8 @@ class DataService:
 
             combined = {
                 'fiscal_quarter': self._format_quarter(date, period),
+                'fiscal_date': date,
+                'reported_date': eps_record.get('reportedDate', ''),
                 'eps': eps_record.get('reportedEPS', 0),
                 'free_cash_flow': free_cash_flow,
                 'gross_income': gross_profit,
@@ -220,6 +222,8 @@ class DataService:
         for record in data:
             formatted.append({
                 'quarter': record.fiscal_quarter,
+                'fiscal_date': record.fiscal_date,
+                'reported_date': record.reported_date,
                 'eps': float(record.eps) if record.eps else 0,
                 'fcf': record.free_cash_flow,
                 'gross_income': record.gross_income,

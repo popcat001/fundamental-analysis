@@ -36,7 +36,16 @@ function DataTable({ data }) {
             <tr>
               <th>Metric</th>
               {sortedData.map((item) => (
-                <th key={item.quarter}>{item.quarter}</th>
+                <th key={item.quarter}>
+                  <div style={{ fontWeight: 'bold' }}>
+                    {item.fiscal_date || item.quarter}
+                  </div>
+                  {item.reported_date && (
+                    <div style={{ fontSize: '0.8em', fontWeight: 'normal', color: '#666', marginTop: '4px' }}>
+                      Reported: {item.reported_date}
+                    </div>
+                  )}
+                </th>
               ))}
             </tr>
           </thead>

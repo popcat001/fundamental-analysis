@@ -24,6 +24,8 @@ class FinancialData(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     ticker = Column(String(10), ForeignKey('companies.ticker'), nullable=False)
     fiscal_quarter = Column(String(10), nullable=False)  # e.g., '2024-Q3'
+    fiscal_date = Column(String(10))  # e.g., '2024-09-30'
+    reported_date = Column(String(10))  # e.g., '2024-10-31' - when earnings were reported
     eps = Column(DECIMAL(10, 2))
     free_cash_flow = Column(BigInteger)
     gross_income = Column(BigInteger)

@@ -115,6 +115,7 @@ class FinancialAPIClient:
                 try:
                     eps_data.append({
                         'date': earning.get('fiscalDateEnding', ''),
+                        'reportedDate': earning.get('reportedDate', ''),
                         'reportedEPS': float(earning.get('reportedEPS', 0) or 0)
                     })
                 except (ValueError, TypeError) as e:
