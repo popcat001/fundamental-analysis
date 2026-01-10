@@ -35,5 +35,17 @@ class Settings:
     # Quarter limit for financial statements
     NUM_QUARTERS = 16
 
+    # Valuation Cache Settings
+    VALUATION_CACHE_HOURS = int(os.getenv("VALUATION_CACHE_HOURS", "24"))
+
+    # Stock Price Cache Settings
+    PRICE_CACHE_DAYS_HISTORICAL = int(os.getenv("PRICE_CACHE_DAYS_HISTORICAL", "999999"))  # Never expire historical
+    PRICE_CACHE_DAYS_RECENT = int(os.getenv("PRICE_CACHE_DAYS_RECENT", "1"))  # 1 day for recent
+
+    # Valuation Calculation Settings
+    PE_BASE_MARKET = float(os.getenv("PE_BASE_MARKET", "15.0"))  # Market baseline P/E
+    PE_GROWTH_MULTIPLIER = float(os.getenv("PE_GROWTH_MULTIPLIER", "0.5"))  # Growth adjustment factor
+    MIN_QUARTERS_FOR_VALUATION = int(os.getenv("MIN_QUARTERS_FOR_VALUATION", "8"))  # Minimum quarters needed
+
 # Create settings instance
 settings = Settings()

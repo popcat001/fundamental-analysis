@@ -1,15 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Dict
+from typing import List, Dict, Optional
+from pydantic import BaseModel
 import re
+from datetime import datetime
 from database import get_db
 from services.data_service import DataService
-from models import Company
+from services.valuation_service import ValuationService
+from models import Company, ValuationCache
 
 router = APIRouter()
 
 # Ticker validation regex (1-5 uppercase letters)
 TICKER_PATTERN = re.compile(r'^[A-Z]{1,5}$')
+
+# Request models
+class ValuationRequest(BaseModel):
+    peers: Optional[List[str]] = None
 
 @router.get("/ticker/{symbol}", response_model=Dict)
 def get_ticker_data(
@@ -156,3 +163,149 @@ def search_tickers(
         }
         for company in companies
     ]
+
+@router.post("/valuation/{symbol}", response_model=Dict)
+def calculate_valuation(
+    symbol: str,
+    request: ValuationRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Calculate stock valuation using P/E multiple method
+
+    Performs comprehensive valuation analysis including:
+    - Forward EPS estimation (growth rate & regression methods)
+    - Historical P/E ratio analysis
+    - Peer comparison (if peers provided)
+    - Fundamentals-based P/E calculation
+    - Justified P/E synthesis
+    - Fair value price range
+
+    Args:
+        symbol: Stock ticker (e.g., AAPL)
+        request: ValuationRequest with optional peer list
+
+    Returns:
+        Complete valuation report with fair value estimates
+
+    Example request body:
+        {"peers": ["MSFT", "GOOGL", "META"]}
+    """
+    # Validate ticker format
+    symbol = symbol.upper()
+    if not TICKER_PATTERN.match(symbol):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid ticker format: {symbol}. Must be 1-5 uppercase letters."
+        )
+
+    # Validate peer tickers if provided
+    if request.peers:
+        for peer in request.peers:
+            if not TICKER_PATTERN.match(peer.upper()):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid peer ticker format: {peer}. Must be 1-5 uppercase letters."
+                )
+
+    # Create valuation service
+    valuation_service = ValuationService(db)
+
+    try:
+        # Perform valuation analysis
+        result = valuation_service.perform_valuation(
+            symbol,
+            [p.upper() for p in request.peers] if request.peers else None
+        )
+        return result
+
+    except ValueError as e:
+        # Insufficient data or other validation error
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        # Unexpected error
+        raise HTTPException(
+            status_code=500,
+            detail=f"Valuation calculation failed: {str(e)}"
+        )
+
+@router.get("/valuation/{symbol}", response_model=Dict)
+def get_cached_valuation(
+    symbol: str,
+    peers: Optional[str] = Query(None, description="Comma-separated peer tickers (e.g., 'MSFT,GOOGL,META')"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get cached valuation results if available and fresh
+
+    Returns previously calculated valuation if:
+    - Calculation was performed within last 24 hours
+    - Same peer list was used (order doesn't matter)
+
+    Args:
+        symbol: Stock ticker
+        peers: Optional comma-separated peer tickers
+
+    Returns:
+        Cached valuation report or 404 if not found/expired
+
+    Example:
+        GET /api/valuation/AAPL?peers=MSFT,GOOGL,META
+    """
+    # Validate ticker format
+    symbol = symbol.upper()
+    if not TICKER_PATTERN.match(symbol):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid ticker format: {symbol}. Must be 1-5 uppercase letters."
+        )
+
+    # Parse and sort peers for cache lookup
+    peer_list = [p.strip().upper() for p in peers.split(',')] if peers else []
+    peer_str = ','.join(sorted(peer_list))
+
+    # Query cache
+    cache = db.query(ValuationCache).filter(
+        ValuationCache.ticker == symbol,
+        ValuationCache.peers == peer_str,
+        ValuationCache.expires_at > datetime.utcnow()
+    ).first()
+
+    if not cache:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No cached valuation found for {symbol}" + (f" with peers {peer_str}" if peer_str else "") + ". Use POST /api/valuation/{symbol} to calculate."
+        )
+
+    # Return cached data (simplified format)
+    return {
+        "symbol": symbol,
+        "cached": True,
+        "calculated_at": cache.calculated_at.isoformat(),
+        "expires_at": cache.expires_at.isoformat(),
+        "forward_eps": {
+            "growth_method": cache.forward_eps_growth,
+            "regression_method": cache.forward_eps_regression,
+            "recommended": (float(cache.forward_eps_growth) + float(cache.forward_eps_regression)) / 2 if cache.forward_eps_growth and cache.forward_eps_regression else None
+        },
+        "historical_pe": {
+            "average": float(cache.historical_pe_avg) if cache.historical_pe_avg else None,
+            "median": float(cache.historical_pe_median) if cache.historical_pe_median else None
+        },
+        "peer_comparison": {
+            "average_pe": float(cache.peer_pe_avg) if cache.peer_pe_avg else None,
+            "peers": peer_list
+        },
+        "fundamentals_pe": float(cache.fundamentals_pe) if cache.fundamentals_pe else None,
+        "justified_pe": {
+            "low": float(cache.justified_pe_low) if cache.justified_pe_low else None,
+            "high": float(cache.justified_pe_high) if cache.justified_pe_high else None,
+            "midpoint": (float(cache.justified_pe_low) + float(cache.justified_pe_high)) / 2 if cache.justified_pe_low and cache.justified_pe_high else None
+        },
+        "fair_value": {
+            "low": float(cache.fair_value_low) if cache.fair_value_low else None,
+            "high": float(cache.fair_value_high) if cache.fair_value_high else None,
+            "midpoint": (float(cache.fair_value_low) + float(cache.fair_value_high)) / 2 if cache.fair_value_low and cache.fair_value_high else None
+        },
+        "note": "This is cached data. For fresh calculation, use POST /api/valuation/{symbol}"
+    }
