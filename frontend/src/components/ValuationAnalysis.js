@@ -2,28 +2,51 @@ import React, { useState, useEffect } from 'react';
 import './ValuationAnalysis.css';
 import ValuationCharts from './ValuationCharts';
 
-// Default peer mappings from peers.md
-// Add more ticker mappings here to auto-populate peer suggestions
-const DEFAULT_PEERS = {
-  'AAPL': 'AMZN, MSFT, GOOGL, META',
-  'AMD': 'NVDA, AVGO, INTC, QCOM',
-  'MU': 'WDC, SNDK',
-  'GOOGL': 'META, AAPL, MSFT, AMZN',
-  // Add more mappings as needed
-};
+// Parse peers.md content into defaultPeers object
+function parsePeersMd(content) {
+  const peers = {};
+  const lines = content.split('\n').filter(line => line.trim());
+
+  for (const line of lines) {
+    // Format: "TICKER    PEER1, PEER2, PEER3"
+    const match = line.match(/^(\w+)\s{2,}(.+)$/);
+    if (match) {
+      const ticker = match[1].trim();
+      const peerList = match[2].trim();
+      peers[ticker] = peerList;
+    }
+  }
+
+  return peers;
+}
 
 function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
   const [peerInput, setPeerInput] = useState('');
+  const [defaultPeers, setDefaultPeers] = useState({});
 
-  // Prepopulate peer input when symbol changes
+  // Load peer mappings from peers.md on mount
   useEffect(() => {
-    if (symbol && DEFAULT_PEERS[symbol.toUpperCase()]) {
-      setPeerInput(DEFAULT_PEERS[symbol.toUpperCase()]);
+    fetch('/peers.md')
+      .then(res => res.text())
+      .then(content => {
+        const peers = parsePeersMd(content);
+        setDefaultPeers(peers);
+      })
+      .catch(err => {
+        console.warn('Failed to load peers.md:', err);
+        setDefaultPeers({});
+      });
+  }, []);
+
+  // Prepopulate peer input when symbol or defaultPeers changes
+  useEffect(() => {
+    if (symbol && defaultPeers[symbol.toUpperCase()]) {
+      setPeerInput(defaultPeers[symbol.toUpperCase()]);
     } else {
       // Keep existing input if no default mapping
       // or clear it if you prefer: setPeerInput('');
     }
-  }, [symbol]);
+  }, [symbol, defaultPeers]);
 
   if (!valuation) {
     return (
@@ -44,7 +67,7 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
               className="peer-input"
             />
             <small>
-              {peerInput && DEFAULT_PEERS[symbol?.toUpperCase()] === peerInput
+              {peerInput && defaultPeers[symbol?.toUpperCase()] === peerInput
                 ? '✓ Auto-populated peers (editable)'
                 : 'Leave blank for valuation without peer comparison'}
             </small>
@@ -129,7 +152,10 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
 
         {/* Step 1: Forward EPS */}
         <div className="valuation-step">
-          <h4><span className="step-number">1.</span> Forward EPS Calculation (Dual Methods)</h4>
+          <h4><span className="step-number">1.</span> Forward EPS Calculation (Dual Methods)
+            {valuation.forward_eps?.growth_method?.historical_eps?.length &&
+              ` (${valuation.forward_eps.growth_method.historical_eps.length} quarters)`}
+          </h4>
           <ul className="step-list">
             <li>
               <strong>Growth method:</strong> {formatCurrency(valuation.forward_eps?.growth_method?.forward_eps || valuation.forward_eps?.growth_method)}
@@ -183,7 +209,10 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
 
         {/* Step 4: Fundamentals */}
         <div className="valuation-step">
-          <h4><span className="step-number">{valuation.peer_comparison?.peer_pe_ratios ? '4' : '3'}.</span> Fundamentals-Based P/E</h4>
+          <h4><span className="step-number">{valuation.peer_comparison?.peer_pe_ratios ? '4' : '3'}.</span> Fundamentals-Based P/E
+            {valuation.fundamentals_analysis?.quarterly_metrics?.length &&
+              ` (${valuation.fundamentals_analysis.quarterly_metrics.length} quarters)`}
+          </h4>
           <ul className="step-list">
             <li className="highlight-item">
               <strong>Fundamentals P/E:</strong> {valuation.fundamentals_analysis?.fundamentals_pe?.toFixed(2) || valuation.fundamentals_pe?.toFixed(2) || 'N/A'}
@@ -269,9 +298,9 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
             onChange={(e) => setPeerInput(e.target.value)}
             className="peer-input"
           />
-          {DEFAULT_PEERS[symbol?.toUpperCase()] && (
+          {defaultPeers[symbol?.toUpperCase()] && (
             <button
-              onClick={() => setPeerInput(DEFAULT_PEERS[symbol.toUpperCase()])}
+              onClick={() => setPeerInput(defaultPeers[symbol.toUpperCase()])}
               className="reset-peers-button"
               title="Reset to default peers"
             >
@@ -280,7 +309,7 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
           )}
         </div>
         <small>
-          {peerInput && DEFAULT_PEERS[symbol?.toUpperCase()] === peerInput
+          {peerInput && defaultPeers[symbol?.toUpperCase()] === peerInput
             ? '✓ Using default peers for ' + symbol
             : 'Modify and click Recalculate to update'}
         </small>

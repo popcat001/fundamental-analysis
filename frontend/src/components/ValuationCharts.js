@@ -19,60 +19,133 @@ function ValuationCharts({ valuation }) {
   const renderForwardEPSChart = () => {
     if (!valuation?.forward_eps?.growth_method?.historical_eps) return null;
 
-    const historicalData = valuation.forward_eps.growth_method.historical_eps.map(item => ({
+    // Growth Method Chart Data
+    const growthHistoricalData = valuation.forward_eps.growth_method.historical_eps.map(item => ({
       quarter: item.quarter,
       actualEPS: item.eps,
       type: 'Historical'
     }));
 
-    // Add projected quarters
-    const projectedData = valuation.forward_eps.growth_method.quarterly_estimates.map((eps, idx) => ({
+    const growthProjectedData = valuation.forward_eps.growth_method.quarterly_estimates.map((eps, idx) => ({
       quarter: `Proj Q${idx + 1}`,
       projectedEPS: eps,
       type: 'Projected'
     }));
 
-    const chartData = [...historicalData, ...projectedData];
+    const growthChartData = [...growthHistoricalData, ...growthProjectedData];
+
+    // Regression Method Chart Data
+    let regressionChartData = null;
+    if (valuation.forward_eps.regression_method?.historical_eps) {
+      const regressionHistoricalData = valuation.forward_eps.regression_method.historical_eps.map(item => ({
+        quarter: item.quarter,
+        actualEPS: item.eps,
+        regressionFit: item.regression_fit,
+        type: 'Historical'
+      }));
+
+      const regressionProjectedData = valuation.forward_eps.regression_method.quarterly_estimates.map((eps, idx) => ({
+        quarter: `Proj Q${idx + 1}`,
+        projectedEPS: eps,
+        type: 'Projected'
+      }));
+
+      regressionChartData = [...regressionHistoricalData, ...regressionProjectedData];
+    }
 
     return (
       <div className="chart-section">
         <h5 onClick={() => toggleSection('forwardEPS')} className="chart-header">
-          📊 Forward EPS: Historical & Projected
+          📊 Forward EPS: Historical & Projected (Dual Methods)
           <span className="toggle-icon">{expandedSections.forwardEPS ? '▼' : '▶'}</span>
         </h5>
         {expandedSections.forwardEPS && (
-          <div className="chart-container">
-            <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="quarter" angle={-45} textAnchor="end" height={80} />
-                <YAxis label={{ value: 'EPS ($)', angle: -90, position: 'insideLeft' }} />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="actualEPS"
-                  stroke="#2563eb"
-                  strokeWidth={2}
-                  name="Historical EPS"
-                  dot={{ r: 4 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="projectedEPS"
-                  stroke="#f59e0b"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  name="Projected EPS (Growth Method)"
-                  dot={{ r: 4 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-            <div className="chart-info">
-              <p><strong>Growth Rate:</strong> {(valuation.forward_eps.growth_method.growth_rate * 100).toFixed(2)}% QoQ</p>
-              <p><strong>Forward EPS (TTM):</strong> ${valuation.forward_eps.recommended}</p>
+          <>
+            <div className="chart-container">
+              <h6>Growth Method</h6>
+              <ResponsiveContainer width="100%" height={300}>
+                <ComposedChart data={growthChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="quarter" angle={-45} textAnchor="end" height={80} />
+                  <YAxis label={{ value: 'EPS ($)', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="actualEPS"
+                    stroke="#2563eb"
+                    strokeWidth={2}
+                    name="Historical EPS"
+                    dot={{ r: 4 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="projectedEPS"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    name="Projected EPS (Growth)"
+                    dot={{ r: 4 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+              <div className="chart-info">
+                <p><strong>Growth Rate:</strong> {(valuation.forward_eps.growth_method.growth_rate * 100).toFixed(2)}% QoQ</p>
+                <p><strong>Forward EPS (Growth):</strong> ${valuation.forward_eps.growth_method.forward_eps}</p>
+              </div>
             </div>
-          </div>
+
+            {regressionChartData && (
+              <div className="chart-container">
+                <h6>Regression Method</h6>
+                <ResponsiveContainer width="100%" height={300}>
+                  <ComposedChart data={regressionChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="quarter" angle={-45} textAnchor="end" height={80} />
+                    <YAxis label={{ value: 'EPS ($)', angle: -90, position: 'insideLeft' }} />
+                    <Tooltip />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="actualEPS"
+                      stroke="#2563eb"
+                      strokeWidth={2}
+                      name="Historical EPS"
+                      dot={{ r: 4 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="regressionFit"
+                      stroke="#8b5cf6"
+                      strokeWidth={2}
+                      name="Regression Fit"
+                      dot={{ r: 3 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="projectedEPS"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      name="Projected EPS (Regression)"
+                      dot={{ r: 4 }}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+                <div className="chart-info">
+                  {valuation.forward_eps.regression_method.slope !== undefined && valuation.forward_eps.regression_method.intercept !== undefined && (
+                    <p><strong>Regression Formula:</strong> EPS = {valuation.forward_eps.regression_method.slope >= 0 ? '' : '-'}{Math.abs(valuation.forward_eps.regression_method.slope).toFixed(4)} × Quarter {valuation.forward_eps.regression_method.intercept >= 0 ? '+ ' : '- '}{Math.abs(valuation.forward_eps.regression_method.intercept).toFixed(4)}</p>
+                  )}
+                  <p><strong>R² (Goodness of Fit):</strong> {valuation.forward_eps.regression_method.r_squared.toFixed(3)}</p>
+                  <p><strong>Forward EPS (Regression):</strong> ${valuation.forward_eps.regression_method.forward_eps}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="chart-info">
+              <p><strong>Recommended Forward EPS (Average):</strong> ${valuation.forward_eps.recommended}</p>
+            </div>
+          </>
         )}
       </div>
     );

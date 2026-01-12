@@ -249,6 +249,7 @@ class ValuationService:
         return {
             'forward_eps': round(forward_eps, 2),
             'slope': round(slope, 4),
+            'intercept': round(intercept, 4),
             'r_squared': round(r_squared, 4),
             'quarterly_estimates': quarterly_estimates,
             'historical_eps': historical_eps

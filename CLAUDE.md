@@ -13,6 +13,24 @@ A web-based fundamental analysis tool for viewing financial data of publicly tra
 - Historical P/E ratio tracking
 - Fair value calculation with upside/downside assessment
 
+## Runtime Requirements
+
+**IMPORTANT - Always follow these conventions:**
+- **Python files:** Always run using `uv` (e.g., `uv run app.py`, `uv run pytest`)
+- **JavaScript files:** Always run using `bun` (e.g., `bun script.js`, `bun run test`)
+- Never use `python`, `node`, or `npm` commands directly in this project
+
+## Changelog Maintenance
+
+**IMPORTANT - Update CHANGELOG.md only when committing to GitHub:**
+- Do NOT update CHANGELOG.md during regular development or feature implementation
+- ONLY update CHANGELOG.md when the user explicitly asks to commit changes to git
+- When creating a git commit, first update `CHANGELOG.md`:
+  - Add entries to the `[Unreleased]` section under appropriate categories (Added, Changed, Fixed, etc.)
+  - Follow the Keep a Changelog format (see CHANGELOG.md for details)
+  - Be specific and concise in descriptions
+  - Then proceed with the git commit
+
 ## Development Commands
 
 ### Backend (FastAPI)
@@ -48,6 +66,25 @@ bun run build
 # Run tests
 bun test
 ```
+
+### Managing Peer Mappings
+
+Default peer suggestions for valuation analysis are defined in `peers.md` in the config folder.
+
+**File location:** `/config/peers.md` (symlinked to `frontend/public/peers.md`)
+
+**Format:**
+```
+TICKER    PEER1, PEER2, PEER3
+AMD       NVDA, AVGO, INTC, QCOM
+```
+- Ticker symbol, followed by 2+ spaces/tabs, then comma-separated peer tickers
+- Peers are auto-populated in the UI when analyzing a ticker
+
+**How it works:**
+- The app fetches and parses `peers.md` at runtime (no build step required)
+- Simply edit `peers.md` and refresh the browser to see changes
+- If a ticker is not found in `peers.md`, the peer input field starts empty
 
 ## Environment Setup
 
