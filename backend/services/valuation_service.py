@@ -175,10 +175,21 @@ class ValuationService:
 
         forward_eps = sum(quarterly_estimates)
 
+        # Include historical EPS for visualization
+        historical_eps = []
+        for i, q in enumerate(sorted_data):
+            if q['eps'] and q['eps'] > 0:
+                historical_eps.append({
+                    'quarter': q['quarter'],
+                    'fiscal_date': q['fiscal_date'],
+                    'eps': round(q['eps'], 2)
+                })
+
         return {
             'forward_eps': round(forward_eps, 2),
             'growth_rate': round(avg_growth, 4),
-            'quarterly_estimates': quarterly_estimates
+            'quarterly_estimates': quarterly_estimates,
+            'historical_eps': historical_eps
         }
 
     def calculate_forward_eps_regression(self, financial_data: List[Dict]) -> Dict:
@@ -224,11 +235,23 @@ class ValuationService:
 
         forward_eps = sum(quarterly_estimates)
 
+        # Include historical EPS for visualization
+        historical_eps = []
+        for i, q in enumerate(sorted_data):
+            if q['eps'] and q['eps'] > 0:
+                historical_eps.append({
+                    'quarter': q['quarter'],
+                    'fiscal_date': q['fiscal_date'],
+                    'eps': round(q['eps'], 2),
+                    'regression_fit': round(slope * i + intercept, 2)
+                })
+
         return {
             'forward_eps': round(forward_eps, 2),
             'slope': round(slope, 4),
             'r_squared': round(r_squared, 4),
-            'quarterly_estimates': quarterly_estimates
+            'quarterly_estimates': quarterly_estimates,
+            'historical_eps': historical_eps
         }
 
     def calculate_historical_pe_ratios(self, symbol: str, financial_data: List[Dict]) -> Optional[Dict]:
@@ -442,6 +465,18 @@ class ValuationService:
 
         fundamentals_pe = base_pe + growth_adjustment + margin_adjustment + risk_adjustment
 
+        # Include quarterly metrics for visualization
+        quarterly_metrics = []
+        for q in sorted_data:
+            quarterly_metrics.append({
+                'quarter': q['quarter'],
+                'fiscal_date': q['fiscal_date'],
+                'eps': round(q['eps'], 2) if q['eps'] else None,
+                'revenue': round(q.get('revenue', 0) / 1e6, 2) if q.get('revenue') else None,  # in millions
+                'net_margin': round(q.get('net_margin', 0) * 100, 2) if q.get('net_margin') is not None else None,  # as percentage
+                'gross_margin': round(q.get('gross_margin', 0) * 100, 2) if q.get('gross_margin') is not None else None  # as percentage
+            })
+
         return {
             'fundamentals_pe': round(max(fundamentals_pe, 5), 2),  # Floor at 5
             'components': {
@@ -456,7 +491,8 @@ class ValuationService:
                 'avg_net_margin': round(avg_net_margin, 4),
                 'margin_trend': margin_trend,
                 'debt_to_equity': round(debt_to_equity, 2)
-            }
+            },
+            'quarterly_metrics': quarterly_metrics
         }
 
     def calculate_justified_pe(self, historical_pe_avg: Optional[float],
@@ -606,6 +642,7 @@ class ValuationService:
                 existing.justified_pe_high = justified_pe['justified_pe_high']
                 existing.fair_value_low = fair_value['fair_value_low']
                 existing.fair_value_high = fair_value['fair_value_high']
+                existing.valuation_data = report  # Store full report for visualization
                 existing.calculated_at = datetime.utcnow()
                 existing.expires_at = expires_at
             else:
@@ -623,6 +660,7 @@ class ValuationService:
                     justified_pe_high=justified_pe['justified_pe_high'],
                     fair_value_low=fair_value['fair_value_low'],
                     fair_value_high=fair_value['fair_value_high'],
+                    valuation_data=report,  # Store full report for visualization
                     calculated_at=datetime.utcnow(),
                     expires_at=expires_at
                 )

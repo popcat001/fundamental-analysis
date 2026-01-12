@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './ValuationAnalysis.css';
+import ValuationCharts from './ValuationCharts';
 
 function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
   const [peerInput, setPeerInput] = useState('');
@@ -228,6 +229,9 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
         </div>
 
       </div>
+
+      {/* Detailed Data Visualization Charts */}
+      <ValuationCharts valuation={valuation} />
 
       {/* Peer Input for Recalculation */}
       <div className="peer-recalc-section">

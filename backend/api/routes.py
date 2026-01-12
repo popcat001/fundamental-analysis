@@ -277,35 +277,43 @@ def get_cached_valuation(
             detail=f"No cached valuation found for {symbol}" + (f" with peers {peer_str}" if peer_str else "") + ". Use POST /api/valuation/{symbol} to calculate."
         )
 
-    # Return cached data (simplified format)
-    return {
-        "symbol": symbol,
-        "cached": True,
-        "calculated_at": cache.calculated_at.isoformat(),
-        "expires_at": cache.expires_at.isoformat(),
-        "forward_eps": {
-            "growth_method": cache.forward_eps_growth,
-            "regression_method": cache.forward_eps_regression,
-            "recommended": (float(cache.forward_eps_growth) + float(cache.forward_eps_regression)) / 2 if cache.forward_eps_growth and cache.forward_eps_regression else None
-        },
-        "historical_pe": {
-            "average": float(cache.historical_pe_avg) if cache.historical_pe_avg else None,
-            "median": float(cache.historical_pe_median) if cache.historical_pe_median else None
-        },
-        "peer_comparison": {
-            "average_pe": float(cache.peer_pe_avg) if cache.peer_pe_avg else None,
-            "peers": peer_list
-        },
-        "fundamentals_pe": float(cache.fundamentals_pe) if cache.fundamentals_pe else None,
-        "justified_pe": {
-            "low": float(cache.justified_pe_low) if cache.justified_pe_low else None,
-            "high": float(cache.justified_pe_high) if cache.justified_pe_high else None,
-            "midpoint": (float(cache.justified_pe_low) + float(cache.justified_pe_high)) / 2 if cache.justified_pe_low and cache.justified_pe_high else None
-        },
-        "fair_value": {
-            "low": float(cache.fair_value_low) if cache.fair_value_low else None,
-            "high": float(cache.fair_value_high) if cache.fair_value_high else None,
-            "midpoint": (float(cache.fair_value_low) + float(cache.fair_value_high)) / 2 if cache.fair_value_low and cache.fair_value_high else None
-        },
-        "note": "This is cached data. For fresh calculation, use POST /api/valuation/{symbol}"
-    }
+    # Return cached full valuation report (includes all visualization data)
+    if cache.valuation_data:
+        # Return full cached report
+        result = cache.valuation_data.copy() if isinstance(cache.valuation_data, dict) else cache.valuation_data
+        result["cached"] = True
+        result["calculated_at"] = cache.calculated_at.isoformat()
+        return result
+    else:
+        # Fallback to simplified format for old cache entries without valuation_data
+        return {
+            "symbol": symbol,
+            "cached": True,
+            "calculated_at": cache.calculated_at.isoformat(),
+            "expires_at": cache.expires_at.isoformat(),
+            "forward_eps": {
+                "growth_method": cache.forward_eps_growth,
+                "regression_method": cache.forward_eps_regression,
+                "recommended": (float(cache.forward_eps_growth) + float(cache.forward_eps_regression)) / 2 if cache.forward_eps_growth and cache.forward_eps_regression else None
+            },
+            "historical_pe": {
+                "average": float(cache.historical_pe_avg) if cache.historical_pe_avg else None,
+                "median": float(cache.historical_pe_median) if cache.historical_pe_median else None
+            },
+            "peer_comparison": {
+                "average_pe": float(cache.peer_pe_avg) if cache.peer_pe_avg else None,
+                "peers": peer_list
+            },
+            "fundamentals_pe": float(cache.fundamentals_pe) if cache.fundamentals_pe else None,
+            "justified_pe": {
+                "low": float(cache.justified_pe_low) if cache.justified_pe_low else None,
+                "high": float(cache.justified_pe_high) if cache.justified_pe_high else None,
+                "midpoint": (float(cache.justified_pe_low) + float(cache.justified_pe_high)) / 2 if cache.justified_pe_low and cache.justified_pe_high else None
+            },
+            "fair_value": {
+                "low": float(cache.fair_value_low) if cache.fair_value_low else None,
+                "high": float(cache.fair_value_high) if cache.fair_value_high else None,
+                "midpoint": (float(cache.fair_value_low) + float(cache.fair_value_high)) / 2 if cache.fair_value_low and cache.fair_value_high else None
+            },
+            "note": "This is cached data without visualization details. Use POST /api/valuation/{symbol} to recalculate with full data."
+        }

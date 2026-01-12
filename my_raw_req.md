@@ -24,3 +24,7 @@ For a given ticker
 2. Determine **justified P/E** from peers + history + fundamentals
 1) P/E history: Price at reporting date / ((EPS at corresponding quarter)*4)
 2) historical EPS/Revenue Growth rate
+
+
+### Phase 2.1: access the backend data
+I want to be able to access/visualize the backend data used for the valuation analysis whenever i want to (on demand). For example, in part 1. forward EPS calculation, i want to know the historical EPS used for the calculation; in part 2, i want to know the historical P/E for last 5 quarters (EPS, price and P/E on the plot); so on until part 4.

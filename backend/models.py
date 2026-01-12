@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DECIMAL, BigInteger, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DECIMAL, BigInteger, DateTime, ForeignKey, UniqueConstraint, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -102,6 +102,9 @@ class ValuationCache(Base):
     # Implied price range
     fair_value_low = Column(DECIMAL(10, 2))
     fair_value_high = Column(DECIMAL(10, 2))
+
+    # Full valuation report (includes all visualization data)
+    valuation_data = Column(JSON)  # Complete valuation report for charts
 
     # Metadata
     calculated_at = Column(DateTime, default=datetime.utcnow)
