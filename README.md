@@ -76,6 +76,15 @@ cd backend
 uv run app.py
 ```
 
+Stop the backend
+```
+ps aux | grep uvicorn | grep -v grep
+kill -9 <PID>
+
+lsof -ti:8000 # Find process that is using the port
+kill <PID>
+```
+
 The backend will start on http://localhost:8000
 
 You can view the API documentation at http://localhost:8000/docs

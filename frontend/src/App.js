@@ -2,18 +2,24 @@ import React, { useState } from 'react';
 import './App.css';
 import TickerSearch from './components/TickerSearch';
 import DataTable from './components/DataTable';
+import ValuationAnalysis from './components/ValuationAnalysis';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorMessage from './components/ErrorMessage';
-import { fetchTickerData, refreshTickerData } from './services/api';
+import { fetchTickerData, refreshTickerData, calculateValuation } from './services/api';
 
 function App() {
   const [tickerData, setTickerData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [valuationData, setValuationData] = useState(null);
+  const [valuationLoading, setValuationLoading] = useState(false);
+  const [valuationError, setValuationError] = useState(null);
 
   const handleTickerSearch = async (ticker) => {
     setLoading(true);
     setError(null);
+    setValuationData(null);
+    setValuationError(null);
 
     try {
       const data = await fetchTickerData(ticker);
@@ -31,6 +37,8 @@ function App() {
 
     setLoading(true);
     setError(null);
+    setValuationData(null);
+    setValuationError(null);
 
     try {
       const data = await refreshTickerData(tickerData.symbol);
@@ -39,6 +47,23 @@ function App() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleValuationCalculate = async (peers) => {
+    if (!tickerData) return;
+
+    setValuationLoading(true);
+    setValuationError(null);
+
+    try {
+      const data = await calculateValuation(tickerData.symbol, peers);
+      setValuationData(data);
+    } catch (err) {
+      setValuationError(err.message);
+      setValuationData(null);
+    } finally {
+      setValuationLoading(false);
     }
   };
 
@@ -69,12 +94,21 @@ function App() {
             </div>
 
             <DataTable data={tickerData.data} />
+
+            {valuationError && <ErrorMessage message={valuationError} />}
+
+            <ValuationAnalysis
+              symbol={tickerData.symbol}
+              valuation={valuationData}
+              onCalculate={handleValuationCalculate}
+              loading={valuationLoading}
+            />
           </>
         )}
       </main>
 
       <footer className="App-footer">
-        <p>Data source: Financial Modeling Prep</p>
+        <p>Data sources: Alpha Vantage (financials), Yahoo Finance (prices)</p>
       </footer>
     </div>
   );

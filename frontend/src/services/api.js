@@ -80,3 +80,46 @@ export async function searchTickers(query) {
     return [];
   }
 }
+
+/**
+ * Calculate stock valuation
+ * @param {string} ticker - Stock ticker symbol
+ * @param {Array<string>} peers - Optional list of peer tickers
+ * @returns {Promise<Object>} Valuation analysis
+ */
+export async function calculateValuation(ticker, peers = null) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/valuation/${ticker}`, {
+      peers: peers
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      if (error.response.status === 404) {
+        throw new Error(error.response.data.detail || `Insufficient data for valuation of '${ticker}'`);
+      } else if (error.response.status === 400) {
+        throw new Error(error.response.data.detail || 'Invalid request');
+      }
+    }
+    throw new Error('Failed to calculate valuation. Please try again later.');
+  }
+}
+
+/**
+ * Get cached valuation
+ * @param {string} ticker - Stock ticker symbol
+ * @param {Array<string>} peers - Optional list of peer tickers
+ * @returns {Promise<Object>} Cached valuation data
+ */
+export async function getCachedValuation(ticker, peers = null) {
+  try {
+    const params = peers && peers.length > 0 ? { peers: peers.join(',') } : {};
+    const response = await axios.get(`${API_BASE_URL}/valuation/${ticker}`, { params });
+    return response.data;
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      return null; // No cached data available
+    }
+    throw error;
+  }
+}

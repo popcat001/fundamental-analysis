@@ -57,6 +57,12 @@ function DataTable({ data }) {
               ))}
             </tr>
             <tr className="alt-row">
+              <td className="metric-label">Revenue</td>
+              {sortedData.map((item) => (
+                <td key={item.quarter}>{formatMillion(item.revenue)}</td>
+              ))}
+            </tr>
+            <tr>
               <td className="metric-label">Free Cash Flow</td>
               {sortedData.map((item) => (
                 <td key={item.quarter}>{formatMillion(item.fcf)}</td>
