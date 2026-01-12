@@ -76,8 +76,18 @@ The module performs a 5-step P/E multiple valuation:
 - Fit linear trend to last 8 quarters: `EPS = slope × quarter + intercept`
 - Predict next 4 quarters using trend line
 - R² value indicates trend strength (0 = no trend, 1 = perfect trend)
+- **Important:** When R² ≈ 0 (flat trend), the regression line sits at the **mean EPS**, not the latest EPS
+  - Example: If last 8 quarters average $1.69 but latest is $1.85, projection uses $1.69 × 4 = $6.76
+  - This smooths out volatility and seasonal spikes
+  - "Flat trend" means horizontal line at the average, providing a conservative estimate
 
 **Recommended EPS:** Average of both methods
+
+**Why Two Methods?**
+- **Growth method** captures recent momentum and trending direction (uses latest value as baseline)
+- **Regression method** smooths volatility and provides conservative baseline (uses mean as baseline)
+- Averaging both balances optimism (growth) with conservatism (regression)
+- Particularly valuable for companies with seasonal earnings patterns
 
 ---
 
@@ -122,6 +132,52 @@ Start with market baseline P/E of **15.0**, then adjust:
 - +0 otherwise
 
 **Formula:** `Fundamentals_PE = 15 + Growth_Adj + Margin_Adj + Risk_Adj`
+
+**Important: Different Growth Rates in Part 1 vs Part 4**
+
+You may notice the EPS growth rate differs between Forward EPS (Part 1) and Fundamentals (Part 4):
+
+| Method | Metric | Measures | Use Case |
+|--------|--------|----------|----------|
+| **Part 1: Growth Method** | Average QoQ Growth | Recent momentum | Forward projection |
+| **Part 4: Fundamentals** | CAGR (Compound Annual Growth Rate) | Long-term trajectory | Valuation adjustment |
+
+**Example: Apple (AAPL) with Seasonal Earnings**
+
+Apple has extreme quarterly volatility due to iPhone/holiday sales:
+```
+Q1: $2.18
+Q2: $1.53
+Q3: $1.40
+Q4: $0.97  (pre-holiday slump)
+Q5: $2.40  (+147% jump! Holiday quarter)
+Q6: $1.65
+Q7: $1.57
+Q8: $1.85
+```
+
+**Part 1 QoQ Growth (last 8 quarters):**
+- Calculates: Q1→Q2, Q2→Q3, Q3→Q4, Q4→Q5, etc.
+- That +147% jump heavily influences the average
+- Result: **+8.59% average QoQ growth**
+- Interpretation: Recent quarters show positive momentum
+
+**Part 4 CAGR (all 16 quarters):**
+- Compares first ($2.10) to last ($1.85) over ~4 years
+- Formula: `((1.85 / 2.10)^(1/4) - 1) = -3.32%`
+- Result: **-3.32% CAGR**
+- Interpretation: Long-term EPS has declined despite seasonal spikes
+
+**Why the Difference Matters:**
+- **QoQ** captures current momentum → Good for projecting next year
+- **CAGR** captures sustained performance → Good for valuing long-term business quality
+- Both are correct! They measure different aspects of company performance
+- For seasonal companies, QoQ can be positive while CAGR is negative
+
+**Which Should You Trust?**
+- Use **QoQ** to understand near-term direction and project forward earnings
+- Use **CAGR** to assess whether the company has genuinely grown over time
+- The valuation combines both perspectives for a balanced view
 
 ---
 
@@ -286,10 +342,28 @@ Weighted average of available P/E estimates:
 
 ### Forward EPS
 
-- **Growth Method** works well for companies with consistent growth trends
-- **Regression Method** is more conservative, smooths out volatility
+**Growth Method:**
+- Works well for companies with consistent growth trends
+- Sensitive to recent momentum and seasonal spikes
+- Uses latest EPS as baseline: `Latest_EPS × (1 + avg_growth)^quarters`
+- Can be optimistic if recent quarters had unusual spikes
+
+**Regression Method:**
+- More conservative, smooths out volatility
+- When R² ≈ 0 (flat trend), predicts at **mean EPS**, not latest EPS
+- This is why regression EPS may be lower than `latest_EPS × 4`
 - **R² value**: Higher = stronger trend (>0.7 = good, <0.3 = weak)
-- **Recommended EPS**: Average of both methods provides balanced estimate
+  - R² > 0.7: Trust the trend line, strong predictive power
+  - R² < 0.3: Falls back to mean, ignores noise
+
+**Recommended EPS:**
+- Average of both methods provides balanced estimate
+- Combines momentum (growth) with conservatism (regression)
+
+**Red Flags:**
+- Large gap between methods (>30%) → High uncertainty, seasonal volatility
+- Negative growth rate → Declining business, use caution
+- Very low R² (<0.1) → No clear trend, high unpredictability
 
 ### Historical P/E
 
@@ -309,6 +383,12 @@ Weighted average of available P/E estimates:
 - **Low P/E** (<15): Declining earnings, high risk, low margins
 - **Medium P/E** (15-25): Stable business, moderate growth
 - **High P/E** (>25): High growth, excellent margins, low risk
+
+**Interpreting Components:**
+- **Growth Adjustment**: Can be negative for declining companies
+- **Margin Adjustment**: Rewards high (>20%) or improving margins
+- **Risk Adjustment**: Penalizes high debt (>1.5x) or declining margins
+- **Net Result**: Fundamentals P/E reflects long-term business quality
 
 ### Assessment
 

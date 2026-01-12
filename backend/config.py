@@ -43,7 +43,7 @@ class Settings:
     PRICE_CACHE_DAYS_RECENT = int(os.getenv("PRICE_CACHE_DAYS_RECENT", "1"))  # 1 day for recent
 
     # Valuation Calculation Settings
-    PE_BASE_MARKET = float(os.getenv("PE_BASE_MARKET", "15.0"))  # Market baseline P/E
+    PE_BASE_MARKET = float(os.getenv("PE_BASE_MARKET", "22.0"))  # Market baseline P/E, use S&P 500 forward P/E
     PE_GROWTH_MULTIPLIER = float(os.getenv("PE_GROWTH_MULTIPLIER", "0.5"))  # Growth adjustment factor
     MIN_QUARTERS_FOR_VALUATION = int(os.getenv("MIN_QUARTERS_FOR_VALUATION", "8"))  # Minimum quarters needed
 

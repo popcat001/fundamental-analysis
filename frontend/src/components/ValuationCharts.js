@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, ComposedChart, Area, Cell
+  ResponsiveContainer, ComposedChart, Cell
 } from 'recharts';
 import './ValuationCharts.css';
 
@@ -26,7 +26,6 @@ function ValuationCharts({ valuation }) {
     }));
 
     // Add projected quarters
-    const lastQuarter = historicalData[historicalData.length - 1];
     const projectedData = valuation.forward_eps.growth_method.quarterly_estimates.map((eps, idx) => ({
       quarter: `Proj Q${idx + 1}`,
       projectedEPS: eps,

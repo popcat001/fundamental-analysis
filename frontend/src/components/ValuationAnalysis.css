@@ -269,6 +269,40 @@
   margin-bottom: 0.5rem;
 }
 
+.peer-input-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.peer-input-controls .peer-input {
+  flex: 1;
+}
+
+.reset-peers-button {
+  padding: 0.5rem 1rem;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.reset-peers-button:hover {
+  background-color: #5a6268;
+}
+
+.peer-recalc-section small {
+  display: block;
+  margin-top: 0.5rem;
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
 @media (max-width: 768px) {
   .current-summary {
     flex-direction: column;
@@ -285,5 +319,14 @@
   .highlight-item {
     margin: 0.5rem -0.5rem;
     padding: 0.75rem 0.5rem;
+  }
+
+  .peer-input-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .reset-peers-button {
+    width: 100%;
   }
 }

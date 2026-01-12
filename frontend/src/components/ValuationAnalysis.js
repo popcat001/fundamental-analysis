@@ -1,9 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ValuationAnalysis.css';
 import ValuationCharts from './ValuationCharts';
 
+// Default peer mappings from peers.md
+// Add more ticker mappings here to auto-populate peer suggestions
+const DEFAULT_PEERS = {
+  'AAPL': 'AMZN, MSFT, GOOGL, META',
+  'AMD': 'NVDA, AVGO, INTC, QCOM',
+  'MU': 'WDC, SNDK',
+  'GOOGL': 'META, AAPL, MSFT, AMZN',
+  // Add more mappings as needed
+};
+
 function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
   const [peerInput, setPeerInput] = useState('');
+
+  // Prepopulate peer input when symbol changes
+  useEffect(() => {
+    if (symbol && DEFAULT_PEERS[symbol.toUpperCase()]) {
+      setPeerInput(DEFAULT_PEERS[symbol.toUpperCase()]);
+    } else {
+      // Keep existing input if no default mapping
+      // or clear it if you prefer: setPeerInput('');
+    }
+  }, [symbol]);
 
   if (!valuation) {
     return (
@@ -23,7 +43,11 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
               onChange={(e) => setPeerInput(e.target.value)}
               className="peer-input"
             />
-            <small>Leave blank for valuation without peer comparison</small>
+            <small>
+              {peerInput && DEFAULT_PEERS[symbol?.toUpperCase()] === peerInput
+                ? '✓ Auto-populated peers (editable)'
+                : 'Leave blank for valuation without peer comparison'}
+            </small>
           </div>
           <button
             onClick={() => {
@@ -236,14 +260,30 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
       {/* Peer Input for Recalculation */}
       <div className="peer-recalc-section">
         <label htmlFor="peers-recalc">Update Peer Tickers:</label>
-        <input
-          id="peers-recalc"
-          type="text"
-          placeholder="e.g., MSFT, GOOGL, META"
-          value={peerInput}
-          onChange={(e) => setPeerInput(e.target.value)}
-          className="peer-input"
-        />
+        <div className="peer-input-controls">
+          <input
+            id="peers-recalc"
+            type="text"
+            placeholder="e.g., MSFT, GOOGL, META"
+            value={peerInput}
+            onChange={(e) => setPeerInput(e.target.value)}
+            className="peer-input"
+          />
+          {DEFAULT_PEERS[symbol?.toUpperCase()] && (
+            <button
+              onClick={() => setPeerInput(DEFAULT_PEERS[symbol.toUpperCase()])}
+              className="reset-peers-button"
+              title="Reset to default peers"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+        <small>
+          {peerInput && DEFAULT_PEERS[symbol?.toUpperCase()] === peerInput
+            ? '✓ Using default peers for ' + symbol
+            : 'Modify and click Recalculate to update'}
+        </small>
       </div>
     </div>
   );

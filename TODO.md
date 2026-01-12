@@ -9,3 +9,5 @@ Toggle checkbox	    CTRL + Shift + Enter	⌘ + ⇧ + Enter
 - [ ] automatically go through the ticker list everyday (to maximize the alphavantage API usage), pull the data and save it to database
 - [ ] Peer Comparison (current P/E snapshot vs historical P/E average)
 * [ ] Automatically download company filings (10-K)
+* [ ] add # of quarters in part 1 and part 4 of valuation analysis (similar to part 2)
+* [ ] show regression method chart as well
