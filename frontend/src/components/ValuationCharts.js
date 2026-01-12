@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, ComposedChart, Area
+  ResponsiveContainer, ComposedChart, Area, Cell
 } from 'recharts';
 import './ValuationCharts.css';
 
@@ -175,14 +175,12 @@ function ValuationCharts({ valuation }) {
                 <YAxis label={{ value: 'P/E Ratio', angle: -90, position: 'insideLeft' }} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="peRatio" fill="#6366f1" name="P/E Ratio">
+                <Bar dataKey="peRatio" name="P/E Ratio">
                   {chartData.map((entry, index) => (
-                    <React.Fragment key={index}>
-                      {entry.ticker.includes('Target') ?
-                        <Bar key={index} fill="#f59e0b" /> :
-                        <Bar key={index} fill="#6366f1" />
-                      }
-                    </React.Fragment>
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.ticker.includes('Target') ? '#f59e0b' : '#6366f1'}
+                    />
                   ))}
                 </Bar>
               </BarChart>
