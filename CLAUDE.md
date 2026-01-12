@@ -71,7 +71,10 @@ bun test
 
 Default peer suggestions for valuation analysis are defined in `peers.md` in the config folder.
 
-**File location:** `/config/peers.md` (symlinked to `frontend/public/peers.md`)
+**File Structure:**
+- **Source file:** `/config/peers.md` - Edit this file only
+- **Symlink:** `frontend/public/peers.md` → `../../config/peers.md`
+- The symlink allows the frontend to fetch the file at runtime via `/peers.md`
 
 **Format:**
 ```
@@ -80,11 +83,18 @@ AMD       NVDA, AVGO, INTC, QCOM
 ```
 - Ticker symbol, followed by 2+ spaces/tabs, then comma-separated peer tickers
 - Peers are auto-populated in the UI when analyzing a ticker
+- Validation: Only letters, commas, and spaces allowed in peer list
 
 **How it works:**
 - The app fetches and parses `peers.md` at runtime (no build step required)
-- Simply edit `peers.md` and refresh the browser to see changes
+- Simply edit `/config/peers.md` and refresh the browser to see changes
 - If a ticker is not found in `peers.md`, the peer input field starts empty
+
+**Verify symlink:**
+```bash
+ls -la frontend/public/peers.md
+# Should show: frontend/public/peers.md -> ../../config/peers.md
+```
 
 ## Environment Setup
 

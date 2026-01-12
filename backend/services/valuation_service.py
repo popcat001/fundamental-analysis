@@ -200,7 +200,13 @@ class ValuationService:
             financial_data: List of quarterly financial data
 
         Returns:
-            Dict with forward_eps, slope, r_squared, quarterly_estimates
+            Dict with:
+                - forward_eps: Sum of next 4 quarterly estimates
+                - slope: Regression line slope coefficient
+                - intercept: Regression line y-intercept
+                - r_squared: Goodness of fit metric (0-1)
+                - quarterly_estimates: List of next 4 quarter estimates
+                - historical_eps: Historical data with regression fit values
         """
         # Sort by fiscal date
         sorted_data = sorted(financial_data, key=lambda x: x['fiscal_date'])

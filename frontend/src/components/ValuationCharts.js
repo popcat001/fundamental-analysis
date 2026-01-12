@@ -5,6 +5,19 @@ import {
 } from 'recharts';
 import './ValuationCharts.css';
 
+// Helper function to format regression formula
+function formatRegressionFormula(slope, intercept) {
+  const slopeStr = slope >= 0 ?
+    slope.toFixed(4) :
+    `-${Math.abs(slope).toFixed(4)}`;
+
+  const interceptStr = intercept >= 0 ?
+    `+ ${intercept.toFixed(4)}` :
+    `- ${Math.abs(intercept).toFixed(4)}`;
+
+  return `EPS = ${slopeStr} × Quarter ${interceptStr}`;
+}
+
 function ValuationCharts({ valuation }) {
   const [expandedSections, setExpandedSections] = useState({});
 
@@ -134,7 +147,10 @@ function ValuationCharts({ valuation }) {
                 </ResponsiveContainer>
                 <div className="chart-info">
                   {valuation.forward_eps.regression_method.slope !== undefined && valuation.forward_eps.regression_method.intercept !== undefined && (
-                    <p><strong>Regression Formula:</strong> EPS = {valuation.forward_eps.regression_method.slope >= 0 ? '' : '-'}{Math.abs(valuation.forward_eps.regression_method.slope).toFixed(4)} × Quarter {valuation.forward_eps.regression_method.intercept >= 0 ? '+ ' : '- '}{Math.abs(valuation.forward_eps.regression_method.intercept).toFixed(4)}</p>
+                    <p><strong>Regression Formula:</strong> {formatRegressionFormula(
+                      valuation.forward_eps.regression_method.slope,
+                      valuation.forward_eps.regression_method.intercept
+                    )}</p>
                   )}
                   <p><strong>R² (Goodness of Fit):</strong> {valuation.forward_eps.regression_method.r_squared.toFixed(3)}</p>
                   <p><strong>Forward EPS (Regression):</strong> ${valuation.forward_eps.regression_method.forward_eps}</p>

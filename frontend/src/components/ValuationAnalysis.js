@@ -11,9 +11,15 @@ function parsePeersMd(content) {
     // Format: "TICKER    PEER1, PEER2, PEER3"
     const match = line.match(/^(\w+)\s{2,}(.+)$/);
     if (match) {
-      const ticker = match[1].trim();
+      const ticker = match[1].trim().toUpperCase();
       const peerList = match[2].trim();
-      peers[ticker] = peerList;
+
+      // Validate peer list format (letters, commas, spaces only)
+      if (peerList && /^[A-Z,\s]+$/i.test(peerList)) {
+        peers[ticker] = peerList;
+      } else {
+        console.warn(`Invalid peer list format for ${ticker}: ${peerList}`);
+      }
     }
   }
 
@@ -23,19 +29,28 @@ function parsePeersMd(content) {
 function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
   const [peerInput, setPeerInput] = useState('');
   const [defaultPeers, setDefaultPeers] = useState({});
+  const [peersLoading, setPeersLoading] = useState(true);
+  const [peersError, setPeersError] = useState(null);
 
   // Load peer mappings from peers.md on mount
   useEffect(() => {
+    setPeersLoading(true);
     fetch('/peers.md')
-      .then(res => res.text())
+      .then(res => {
+        if (!res.ok) throw new Error(`Failed to load peers.md: ${res.status}`);
+        return res.text();
+      })
       .then(content => {
         const peers = parsePeersMd(content);
         setDefaultPeers(peers);
+        setPeersError(null);
       })
       .catch(err => {
         console.warn('Failed to load peers.md:', err);
+        setPeersError(err.message);
         setDefaultPeers({});
-      });
+      })
+      .finally(() => setPeersLoading(false));
   }, []);
 
   // Prepopulate peer input when symbol or defaultPeers changes
