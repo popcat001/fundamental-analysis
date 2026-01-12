@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [0.3.0] - 2026-01-12
+
+### Added
 - Number of quarters indicator in Forward EPS Calculation section (Part 1)
 - Number of quarters indicator in Fundamentals-Based P/E section (Part 4)
 - Regression method chart visualization in detailed data visualization
@@ -15,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Intercept value to regression method output in backend
 - Automatic peer mapping from `config/peers.md` - fetched and parsed at runtime
 - Symlink from `frontend/public/peers.md` to `config/peers.md` for single source of truth
+- CHANGELOG.md file following Keep a Changelog format
 
 ### Changed
 - Moved peer mappings configuration from hardcoded JavaScript to `config/peers.md`
@@ -22,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved chart titles and legends for better clarity
 - Updated CLAUDE.md with runtime requirements (uv for Python, bun for JavaScript)
 - Updated CLAUDE.md with peer mapping management instructions
+- Updated CLAUDE.md with changelog maintenance policy (update only on git commits)
 
 ### Removed
 - Hardcoded DEFAULT_PEERS object from ValuationAnalysis.js component

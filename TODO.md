@@ -10,7 +10,7 @@ Toggle checkbox	    CTRL + Shift + Enter	⌘ + ⇧ + Enter
 
 * [X] ~~*add # of quarters in part 1 and part 4 of valuation analysis (similar to part 2)*~~ [2026-01-12]
 * [X] ~~*show regression method chart as well*~~ [2026-01-12]
-* [ ] Add changelog.md
+* [X] ~~*Add changelog.md*~~ [2026-01-12]
 
 
 - [ ] Peer Comparison (current P/E snapshot vs historical P/E average)
