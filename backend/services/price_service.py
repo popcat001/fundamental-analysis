@@ -50,10 +50,10 @@ class PriceService:
             logger.info(f"Using cached price for {symbol} on {date}: ${cached_price.close}")
             return float(cached_price.close)
 
-        # Step 2: Check cache for nearby dates (±5 days)
+        # Step 2: Check cache for nearby dates
         target_dt = datetime.strptime(date, '%Y-%m-%d')
-        start_range = (target_dt - timedelta(days=5)).strftime('%Y-%m-%d')
-        end_range = (target_dt + timedelta(days=5)).strftime('%Y-%m-%d')
+        start_range = (target_dt - timedelta(days=settings.PRICE_LOOKUP_DAYS_RANGE)).strftime('%Y-%m-%d')
+        end_range = (target_dt + timedelta(days=settings.PRICE_LOOKUP_DAYS_RANGE)).strftime('%Y-%m-%d')
 
         nearby_prices = self.db.query(StockPrice).filter(
             StockPrice.ticker == symbol,
@@ -123,7 +123,7 @@ class PriceService:
         max_date = max(missing_dates)
 
         # Expand range slightly for better coverage
-        start_date = (datetime.strptime(min_date, '%Y-%m-%d') - timedelta(days=7)).strftime('%Y-%m-%d')
+        start_date = (datetime.strptime(min_date, '%Y-%m-%d') - timedelta(days=settings.PRICE_FETCH_BUFFER_DAYS)).strftime('%Y-%m-%d')
         end_date = (datetime.strptime(max_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
 
         fetched_prices = self.api_client.get_historical_prices(symbol, start_date, end_date)

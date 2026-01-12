@@ -277,7 +277,7 @@ class ValuationService:
 
         pe_ratios = []
 
-        for i in range(3, len(sorted_data)):  # Need at least 4 quarters for TTM
+        for i in range(settings.TTM_QUARTERS - 1, len(sorted_data)):  # Need at least TTM_QUARTERS for TTM
             quarter = sorted_data[i]
             reported_date = quarter.get('reported_date')
 
@@ -458,17 +458,17 @@ class ValuationService:
 
         # Margin adjustment
         margin_adjustment = 0
-        if avg_net_margin > 0.20:  # >20% margin is excellent
-            margin_adjustment += 3
+        if avg_net_margin > settings.EXCELLENT_NET_MARGIN_THRESHOLD:
+            margin_adjustment += settings.MARGIN_EXCELLENT_ADJUSTMENT
         if margin_trend == "improving":
-            margin_adjustment += 2
+            margin_adjustment += settings.MARGIN_IMPROVING_ADJUSTMENT
 
         # Risk adjustment
         risk_adjustment = 0
-        if debt_to_equity > 1.5:
-            risk_adjustment -= 2
+        if debt_to_equity > settings.HIGH_DEBT_TO_EQUITY_THRESHOLD:
+            risk_adjustment += settings.DEBT_RISK_ADJUSTMENT
         if margin_trend == "declining":
-            risk_adjustment -= 2
+            risk_adjustment += settings.DECLINING_MARGIN_ADJUSTMENT
 
         fundamentals_pe = base_pe + growth_adjustment + margin_adjustment + risk_adjustment
 
@@ -522,15 +522,15 @@ class ValuationService:
 
         if historical_pe_avg and historical_pe_avg > 0:
             pe_values.append(historical_pe_avg)
-            weights.append(0.4)  # 40% weight for historical
+            weights.append(settings.PE_WEIGHT_HISTORICAL)
 
         if peer_pe_avg and peer_pe_avg > 0:
             pe_values.append(peer_pe_avg)
-            weights.append(0.3)  # 30% weight for peers
+            weights.append(settings.PE_WEIGHT_PEER)
 
         if fundamentals_pe and fundamentals_pe > 0:
             pe_values.append(fundamentals_pe)
-            weights.append(0.3)  # 30% weight for fundamentals
+            weights.append(settings.PE_WEIGHT_FUNDAMENTALS)
 
         # Normalize weights if some data is missing
         if sum(weights) > 0:

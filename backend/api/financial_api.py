@@ -131,16 +131,35 @@ class FinancialAPIClient:
             logger.error(f"Unexpected error fetching earnings for {symbol}: {type(e).__name__}: {str(e)}")
             return []
 
-    def get_income_statement(self, symbol: str, period: str = 'quarter', limit: int = settings.NUM_QUARTERS) -> List[Dict]:
-        """Get income statement data from Alpha Vantage"""
+    def _fetch_financial_statement(
+        self,
+        symbol: str,
+        function_name: str,
+        transform_func: callable,
+        period: str = 'quarter',
+        limit: int = settings.NUM_QUARTERS
+    ) -> List[Dict]:
+        """
+        Generic method for fetching financial statements from Alpha Vantage
+
+        Args:
+            symbol: Stock ticker symbol
+            function_name: Alpha Vantage function name (e.g., 'INCOME_STATEMENT')
+            transform_func: Function to transform report data to desired format
+            period: 'quarter' or 'annual'
+            limit: Number of reports to fetch
+
+        Returns:
+            List of transformed financial reports
+        """
         if not self.alpha_vantage_api_key:
             logger.error("Alpha Vantage API key not configured")
             return []
 
-        self._wait_for_rate_limit()  # Enforce rate limit
+        self._wait_for_rate_limit()
 
         params = {
-            'function': 'INCOME_STATEMENT',
+            'function': function_name,
             'symbol': symbol,
             'apikey': self.alpha_vantage_api_key
         }
@@ -159,144 +178,71 @@ class FinancialAPIClient:
                 logger.warning(f"Alpha Vantage API note for {symbol}: {data['Note']}")
                 return []
 
-            # Alpha Vantage returns quarterly reports under 'quarterlyReports' key
-            reports = data.get('quarterlyReports', [])[:limit] if period == 'quarter' else data.get('annualReports', [])[:limit]
+            # Extract reports based on period
+            reports_key = 'quarterlyReports' if period == 'quarter' else 'annualReports'
+            reports = data.get(reports_key, [])[:limit]
 
             if not reports:
-                logger.warning(f"No reports found in Alpha Vantage response for {symbol}. Response keys: {list(data.keys())}")
+                logger.warning(f"No {reports_key} found in {function_name} response for {symbol}")
                 return []
 
-            # Transform to match expected format
+            # Transform reports using provided function
             transformed_reports = []
             for report in reports:
                 try:
-                    transformed_reports.append({
-                        'date': report.get('fiscalDateEnding', ''),
-                        'period': self._extract_quarter_from_date(report.get('fiscalDateEnding', '')),
-                        'revenue': float(report.get('totalRevenue', 0) or 0),
-                        'grossProfit': float(report.get('grossProfit', 0) or 0),
-                        'netIncome': float(report.get('netIncome', 0) or 0),
-                        'eps': 0  # Will be filled in from earnings data
-                    })
+                    transformed_data = transform_func(report)
+                    if transformed_data:  # Only add if transformation succeeded
+                        transformed_reports.append(transformed_data)
                 except (ValueError, TypeError) as e:
-                    logger.warning(f"Error converting data for {symbol} report {report.get('fiscalDateEnding')}: {e}")
+                    logger.warning(f"Error transforming {function_name} data for {symbol} report {report.get('fiscalDateEnding')}: {e}")
                     continue
 
-            logger.info(f"Fetched {len(transformed_reports)} quarters of income statement data for {symbol}")
+            logger.info(f"Fetched {len(transformed_reports)} {period}s of {function_name} data for {symbol}")
             return transformed_reports
+
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to fetch income statement for {symbol}: {str(e)}")
+            logger.error(f"Failed to fetch {function_name} for {symbol}: {str(e)}")
             return []
         except Exception as e:
-            logger.error(f"Unexpected error fetching income statement for {symbol}: {type(e).__name__}: {str(e)}")
+            logger.error(f"Unexpected error fetching {function_name} for {symbol}: {type(e).__name__}: {str(e)}")
             return []
+
+    def get_income_statement(self, symbol: str, period: str = 'quarter', limit: int = settings.NUM_QUARTERS) -> List[Dict]:
+        """Get income statement data from Alpha Vantage"""
+        def transform_income_statement(report: Dict) -> Dict:
+            return {
+                'date': report.get('fiscalDateEnding', ''),
+                'period': self._extract_quarter_from_date(report.get('fiscalDateEnding', '')),
+                'revenue': float(report.get('totalRevenue', 0) or 0),
+                'grossProfit': float(report.get('grossProfit', 0) or 0),
+                'netIncome': float(report.get('netIncome', 0) or 0),
+                'eps': 0  # Will be filled in from earnings data
+            }
+
+        return self._fetch_financial_statement(symbol, 'INCOME_STATEMENT', transform_income_statement, period, limit)
 
     def get_cash_flow_statement(self, symbol: str, period: str = 'quarter', limit: int = settings.NUM_QUARTERS) -> List[Dict]:
         """Get cash flow statement data from Alpha Vantage"""
-        if not self.alpha_vantage_api_key:
-            logger.error("Alpha Vantage API key not configured")
-            return []
+        def transform_cash_flow(report: Dict) -> Dict:
+            return {
+                'date': report.get('fiscalDateEnding', ''),
+                'operatingCashFlow': float(report.get('operatingCashflow', 0) or 0),
+                'capitalExpenditure': float(report.get('capitalExpenditures', 0) or 0)
+            }
 
-        self._wait_for_rate_limit()  # Enforce rate limit
-
-        params = {
-            'function': 'CASH_FLOW',
-            'symbol': symbol,
-            'apikey': self.alpha_vantage_api_key
-        }
-
-        try:
-            response = self.session.get(self.alpha_vantage_base_url, params=params, timeout=settings.API_REQUEST_TIMEOUT)
-            response.raise_for_status()
-            data = response.json()
-
-            # Check for API errors
-            if 'Error Message' in data:
-                logger.error(f"Alpha Vantage API error for {symbol}: {data['Error Message']}")
-                return []
-
-            if 'Note' in data:
-                logger.warning(f"Alpha Vantage API note for {symbol}: {data['Note']}")
-                return []
-
-            # Alpha Vantage returns quarterly reports under 'quarterlyReports' key
-            reports = data.get('quarterlyReports', [])[:limit] if period == 'quarter' else data.get('annualReports', [])[:limit]
-
-            # Transform to match expected format
-            transformed_reports = []
-            for report in reports:
-                try:
-                    transformed_reports.append({
-                        'date': report.get('fiscalDateEnding', ''),
-                        'operatingCashFlow': float(report.get('operatingCashflow', 0) or 0),
-                        'capitalExpenditure': float(report.get('capitalExpenditures', 0) or 0)
-                    })
-                except (ValueError, TypeError) as e:
-                    logger.warning(f"Error converting cash flow data for {symbol} report {report.get('fiscalDateEnding')}: {e}")
-                    continue
-            
-            logger.info(f"Fetched {len(transformed_reports)} quarters of cash flow statement data for {symbol}")
-            return transformed_reports
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to fetch cash flow statement for {symbol}: {str(e)}")
-            return []
-        except Exception as e:
-            logger.error(f"Unexpected error fetching cash flow statement for {symbol}: {type(e).__name__}: {str(e)}")
-            return []
+        return self._fetch_financial_statement(symbol, 'CASH_FLOW', transform_cash_flow, period, limit)
 
     def get_balance_sheet(self, symbol: str, period: str = 'quarter', limit: int = settings.NUM_QUARTERS) -> List[Dict]:
         """Get balance sheet data from Alpha Vantage"""
-        if not self.alpha_vantage_api_key:
-            logger.error("Alpha Vantage API key not configured")
-            return []
+        def transform_balance_sheet(report: Dict) -> Dict:
+            return {
+                'date': report.get('fiscalDateEnding', ''),
+                'cashAndCashEquivalents': float(report.get('cashAndCashEquivalentsAtCarryingValue', 0) or 0),
+                'shortTermDebt': float(report.get('shortTermDebt', 0) or 0),
+                'longTermDebt': float(report.get('longTermDebt', 0) or 0)
+            }
 
-        self._wait_for_rate_limit()  # Enforce rate limit
-
-        params = {
-            'function': 'BALANCE_SHEET',
-            'symbol': symbol,
-            'apikey': self.alpha_vantage_api_key
-        }
-
-        try:
-            response = self.session.get(self.alpha_vantage_base_url, params=params, timeout=settings.API_REQUEST_TIMEOUT)
-            response.raise_for_status()
-            data = response.json()
-
-            # Check for API errors
-            if 'Error Message' in data:
-                logger.error(f"Alpha Vantage API error for {symbol}: {data['Error Message']}")
-                return []
-
-            if 'Note' in data:
-                logger.warning(f"Alpha Vantage API note for {symbol}: {data['Note']}")
-                return []
-
-            # Alpha Vantage returns quarterly reports under 'quarterlyReports' key
-            reports = data.get('quarterlyReports', [])[:limit] if period == 'quarter' else data.get('annualReports', [])[:limit]
-
-            # Transform to match expected format
-            transformed_reports = []
-            for report in reports:
-                try:
-                    transformed_reports.append({
-                        'date': report.get('fiscalDateEnding', ''),
-                        'cashAndCashEquivalents': float(report.get('cashAndCashEquivalentsAtCarryingValue', 0) or 0),
-                        'shortTermDebt': float(report.get('shortTermDebt', 0) or 0),
-                        'longTermDebt': float(report.get('longTermDebt', 0) or 0)
-                    })
-                except (ValueError, TypeError) as e:
-                    logger.warning(f"Error converting balance sheet data for {symbol} report {report.get('fiscalDateEnding')}: {e}")
-                    continue
-            
-            logger.info(f"Fetched {len(transformed_reports)} quarters of balance sheet data for {symbol}")
-            return transformed_reports
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to fetch balance sheet for {symbol}: {str(e)}")
-            return []
-        except Exception as e:
-            logger.error(f"Unexpected error fetching balance sheet for {symbol}: {type(e).__name__}: {str(e)}")
-            return []
+        return self._fetch_financial_statement(symbol, 'BALANCE_SHEET', transform_balance_sheet, period, limit)
 
     def _get_quarter_from_date(self, date_str: str) -> str:
         """Convert date string to quarter format (e.g., '2024-Q3')"""

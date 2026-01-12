@@ -47,5 +47,29 @@ class Settings:
     PE_GROWTH_MULTIPLIER = float(os.getenv("PE_GROWTH_MULTIPLIER", "0.5"))  # Growth adjustment factor
     MIN_QUARTERS_FOR_VALUATION = int(os.getenv("MIN_QUARTERS_FOR_VALUATION", "8"))  # Minimum quarters needed
 
+    # EPS Calculation Settings
+    TTM_QUARTERS = 4  # Trailing twelve months = 4 quarters
+
+    # Fundamentals P/E Adjustment Thresholds
+    EXCELLENT_NET_MARGIN_THRESHOLD = 0.20  # 20% net margin threshold
+    MARGIN_EXCELLENT_ADJUSTMENT = 3  # P/E adjustment for excellent margins
+    MARGIN_IMPROVING_ADJUSTMENT = 2  # P/E adjustment for improving margins
+    HIGH_DEBT_TO_EQUITY_THRESHOLD = 1.5  # Debt-to-equity ratio threshold
+    DEBT_RISK_ADJUSTMENT = -2  # P/E adjustment for high debt
+    DECLINING_MARGIN_ADJUSTMENT = -2  # P/E adjustment for declining margins
+
+    # Justified P/E Weighting (with peer comparison)
+    PE_WEIGHT_HISTORICAL = 0.4  # Weight for historical P/E
+    PE_WEIGHT_PEER = 0.3  # Weight for peer P/E
+    PE_WEIGHT_FUNDAMENTALS = 0.3  # Weight for fundamentals P/E
+
+    # Justified P/E Weighting (without peer comparison)
+    PE_WEIGHT_HISTORICAL_NO_PEER = 0.57  # Weight for historical P/E when no peers
+    PE_WEIGHT_FUNDAMENTALS_NO_PEER = 0.43  # Weight for fundamentals P/E when no peers
+
+    # Stock Price Lookup Settings
+    PRICE_LOOKUP_DAYS_RANGE = 5  # Days to search before/after target date
+    PRICE_FETCH_BUFFER_DAYS = 7  # Buffer days when fetching historical price range
+
 # Create settings instance
 settings = Settings()

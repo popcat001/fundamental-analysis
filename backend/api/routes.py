@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.orm import Session
 from typing import List, Dict, Optional
 from pydantic import BaseModel
@@ -14,13 +14,35 @@ router = APIRouter()
 # Ticker validation regex (1-5 uppercase letters)
 TICKER_PATTERN = re.compile(r'^[A-Z]{1,5}$')
 
+# Dependency for validating and normalizing ticker symbols
+def validate_ticker(symbol: str = Path(..., description="Stock ticker symbol (1-5 letters)")) -> str:
+    """
+    Validate and normalize ticker symbol
+
+    Args:
+        symbol: Stock ticker symbol
+
+    Returns:
+        Normalized (uppercase) ticker symbol
+
+    Raises:
+        HTTPException: If ticker format is invalid
+    """
+    symbol = symbol.upper()
+    if not TICKER_PATTERN.match(symbol):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid ticker format: {symbol}. Must be 1-5 uppercase letters."
+        )
+    return symbol
+
 # Request models
 class ValuationRequest(BaseModel):
     peers: Optional[List[str]] = None
 
 @router.get("/ticker/{symbol}", response_model=Dict)
 def get_ticker_data(
-    symbol: str,
+    symbol: str = Depends(validate_ticker),
     db: Session = Depends(get_db)
 ):
     """
@@ -32,13 +54,6 @@ def get_ticker_data(
     Returns:
         Dict containing symbol, financial data, and last updated timestamp
     """
-    # Validate ticker format
-    symbol = symbol.upper()
-    if not TICKER_PATTERN.match(symbol):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid ticker format: {symbol}. Must be 1-5 uppercase letters."
-        )
 
     # Create data service
     data_service = DataService(db)
@@ -67,7 +82,7 @@ def get_ticker_data(
 
 @router.post("/ticker/{symbol}/refresh")
 def refresh_ticker_data(
-    symbol: str,
+    symbol: str = Depends(validate_ticker),
     db: Session = Depends(get_db)
 ):
     """
@@ -79,13 +94,6 @@ def refresh_ticker_data(
     Returns:
         Dict containing refreshed financial data
     """
-    # Validate ticker format
-    symbol = symbol.upper()
-    if not TICKER_PATTERN.match(symbol):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid ticker format: {symbol}. Must be 1-5 uppercase letters."
-        )
 
     # Create data service
     data_service = DataService(db)
@@ -166,8 +174,8 @@ def search_tickers(
 
 @router.post("/valuation/{symbol}", response_model=Dict)
 def calculate_valuation(
-    symbol: str,
-    request: ValuationRequest,
+    symbol: str = Depends(validate_ticker),
+    request: ValuationRequest = ...,
     db: Session = Depends(get_db)
 ):
     """
@@ -191,13 +199,6 @@ def calculate_valuation(
     Example request body:
         {"peers": ["MSFT", "GOOGL", "META"]}
     """
-    # Validate ticker format
-    symbol = symbol.upper()
-    if not TICKER_PATTERN.match(symbol):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid ticker format: {symbol}. Must be 1-5 uppercase letters."
-        )
 
     # Validate peer tickers if provided
     if request.peers:
@@ -231,7 +232,7 @@ def calculate_valuation(
 
 @router.get("/valuation/{symbol}", response_model=Dict)
 def get_cached_valuation(
-    symbol: str,
+    symbol: str = Depends(validate_ticker),
     peers: Optional[str] = Query(None, description="Comma-separated peer tickers (e.g., 'MSFT,GOOGL,META')"),
     db: Session = Depends(get_db)
 ):
@@ -252,13 +253,6 @@ def get_cached_valuation(
     Example:
         GET /api/valuation/AAPL?peers=MSFT,GOOGL,META
     """
-    # Validate ticker format
-    symbol = symbol.upper()
-    if not TICKER_PATTERN.match(symbol):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid ticker format: {symbol}. Must be 1-5 uppercase letters."
-        )
 
     # Parse and sort peers for cache lookup
     peer_list = [p.strip().upper() for p in peers.split(',')] if peers else []

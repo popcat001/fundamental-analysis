@@ -218,9 +218,9 @@ A comprehensive P/E multiple-based valuation system that calculates fair value p
    - Computes peer group average and median
 
 4. **Fundamentals-Based P/E** - Adjust baseline P/E based on company metrics
-   - Base P/E: 15.0
+   - Base P/E: 22.0 (S&P 500 forward P/E)
    - Adjustments for: growth rate, margins, debt, margin trends
-   - Formula: `15 + growth_adj + margin_adj + risk_adj`
+   - Formula: `base_pe + growth_adj + margin_adj + risk_adj`
 
 5. **Justified P/E Synthesis** - Weighted average of all P/E estimates
    - Without peers: 57% historical, 43% fundamentals
@@ -241,7 +241,7 @@ A comprehensive P/E multiple-based valuation system that calculates fair value p
 
 Key settings in `backend/config.py`:
 - `VALUATION_CACHE_HOURS`: Cache duration (default: 24)
-- `PE_BASE_MARKET`: Baseline P/E (default: 15.0)
+- `PE_BASE_MARKET`: Baseline P/E (default: 22.0, based on S&P 500 forward P/E)
 - `PE_GROWTH_MULTIPLIER`: Growth adjustment factor (default: 0.5)
 - `MIN_QUARTERS_FOR_VALUATION`: Data requirement (default: 8)
 
