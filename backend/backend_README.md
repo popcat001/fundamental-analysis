@@ -1,123 +1,127 @@
-# Fundamental Analysis Backend
+# Backend API
 
-Backend API for retrieving and caching stock fundamental financial data using Alpha Vantage API.
+FastAPI backend for stock fundamental data and P/E-based valuation analysis.
+
+**Alpha Vantage API + SQLite caching + yfinance prices**
 
 ## Features
 
-- Fetch fundamental financial data (income statement, cash flow, balance sheet, EPS)
-- SQLite database caching with intelligent refresh logic
-- Rate limiting compliance with Alpha Vantage API (1.5s between requests)
-- RESTful API endpoints
+- Financial data retrieval (16 quarters, displays 8)
+- P/E multiple-based stock valuation
+- Intelligent caching (permanent storage, smart refresh)
+- Rate limiting (1.5s between API calls)
+- Stock price tracking (yfinance)
 
-## Database Cache Behavior
+## Quick Start
 
-### How the Cache Works
+```bash
+# Create .env file
+cp .env.example .env
+# Add ALPHA_VANTAGE_API_KEY=your_key_here
 
-The application uses a **permanent database cache** with intelligent refresh logic:
+# Start server
+uv run app.py
+# Runs on http://localhost:8000
+# API docs: http://localhost:8000/docs
+```
 
-1. **Data is stored PERMANENTLY** in the database
-   - Financial records are never automatically deleted
-   - Once stored, they remain in the database indefinitely
+## Cache Behavior
 
-2. **The 30-day "expiry" only determines WHEN TO REFRESH**:
-   - When you request data, it checks: "Is this data less than 30 days old?"
-   - **If YES (fresh)**: Returns cached data from database (no API call)
-   - **If NO (stale)**: Fetches fresh data from API and updates the cache
+### Permanent Storage with Smart Refresh
 
-3. **Data is UPDATED, not replaced**:
-   - If a record exists for a quarter, it updates that record
-   - If a record doesn't exist, it creates a new one
-   - The `fetched_at` timestamp is updated to track freshness
+1. **Data stored permanently** - Records never auto-deleted
+2. **30-day freshness check** - Determines when to refresh
+   - **Fresh (<30d)**: Returns cached data (no API call)
+   - **Stale (>30d)**: Fetches from API and updates cache
+3. **Update, not replace** - Existing records updated, new ones added
+4. **Fallback** - Returns stale cache if API fails
 
-4. **Fallback to stale cache**:
-   - If the API fails but you have old cached data (even >30 days old)
-   - It will return the stale data rather than failing completely
+**Benefits:**
+- Fast responses (cached data)
+- Current data (30-day refresh)
+- Reliability (fallback to stale cache)
+- Historical preservation
 
-### Summary
+## API Rate Limits
 
-- **Database storage**: Permanent (never auto-deleted)
-- **Cache freshness check**: 30 days (configurable via `CACHE_EXPIRY_DAYS`)
-- **Behavior after 30 days**: Fetches fresh data and updates existing records
-- **Old data**: Kept as fallback if API fails
-
-This design provides:
-- ✅ Fast responses using cached data (when fresh)
-- ✅ Up-to-date data (refreshes every 30 days)
-- ✅ Reliability (uses old cache if API is down)
-- ✅ Historical preservation (data never deleted)
-
-## API Configuration
-
-### Alpha Vantage Rate Limits
-
-The application respects Alpha Vantage's free tier limits:
-- **Rate limit**: 1.5 seconds between requests (enforced in code)
-- **Daily limit**: 25 API calls per day
-- **Per symbol fetch**: ~6 seconds (4 API calls: earnings, income statement, cash flow, balance sheet)
-
-### Data Fetched
-
-For each stock symbol, the application fetches **16 quarters (4 years)** of:
-- Quarterly earnings (EPS)
-- Income statements (revenue, gross profit, net income)
-- Cash flow statements (operating cash flow, capex)
-- Balance sheets (cash, debt)
+Alpha Vantage free tier:
+- **Daily limit**: 25 API calls
+- **Rate limiting**: 1.5 seconds between calls (enforced)
+- **Per ticker**: ~6 seconds (4 API calls)
 
 ## Environment Variables
 
-Create a `.env` file in the backend directory:
+```bash
+# Required
+ALPHA_VANTAGE_API_KEY=your_api_key_here
 
-```
-# API Keys
-ALPHA_VANTAGE_API_KEY=your_alpha_vantage_api_key_here
-
-# Database URL (optional - for PostgreSQL)
-# DATABASE_URL=postgresql://user:password@localhost/fundamentals_db
-
-# Cache Settings
+# Optional
+DATABASE_URL=postgresql://user:pass@localhost/db  # Default: SQLite
 CACHE_EXPIRY_DAYS=30
-
-# Frontend URL for CORS
+VALUATION_CACHE_HOURS=24
 FRONTEND_URL=http://localhost:3000
 ```
 
 ## Installation
 
 ```bash
-# Install dependencies (if using requirements.txt)
-pip install -r requirements.txt
-
-# Or install manually
-pip install fastapi uvicorn sqlalchemy python-dotenv requests
-```
-
-## Running the Application
-
-```bash
-# Start the server
-python app.py
-
-# Server runs on http://localhost:8000
+# Dependencies managed by uv (auto-installed)
+uv run app.py
 ```
 
 ## API Endpoints
 
-### Get Financial Data
+### Financial Data
+
+**Get data**
 ```
 GET /api/ticker/{symbol}
 ```
-Returns financial data for the specified stock symbol.
 
-**Response:**
+**Refresh data**
+```
+POST /api/ticker/{symbol}/refresh
+```
+
+**List cached tickers**
+```
+GET /api/tickers
+```
+
+### Valuation
+
+**Calculate valuation**
+```
+POST /api/valuation/{symbol}
+Body: {"peers": ["MSFT", "GOOGL"]}  # Optional
+```
+
+**Get cached valuation**
+```
+GET /api/valuation/{symbol}?peers=MSFT,GOOGL
+```
+
+### System
+
+**Health check**
+```
+GET /health
+```
+
+## Example Response
+
 ```json
 {
   "company_name": "Apple Inc.",
   "ticker": "AAPL",
-  "last_updated": "2024-01-06T12:00:00",
+  "last_updated": "2026-01-12T10:00:00",
   "data": [
     {
       "quarter": "2024-Q3",
+      "fiscal_date": "2024-09-30",
+      "reported_date": "2024-10-31",
       "eps": 1.52,
+      "revenue": 94000000000,
       "fcf": 25000000000,
       "gross_income": 45000000000,
       "gross_margin": 0.45,
@@ -126,79 +130,59 @@ Returns financial data for the specified stock symbol.
       "capex": 2500000000,
       "cash": 50000000000,
       "debt": 120000000000,
-      "source": "Alpha Vantage",
-      "last_updated": "2024-01-06T12:00:00"
+      "source": "Alpha Vantage"
     }
   ]
 }
 ```
 
-### Get Cached Tickers
-```
-GET /api/tickers
-```
-Returns list of all tickers currently in the cache.
-
-### Refresh Data
-```
-POST /api/ticker/{symbol}/refresh
-```
-Forces a refresh of data from the API, bypassing cache.
-
-### Health Check
-```
-GET /health
-```
-Returns API health status.
-
-## Testing
-
-```bash
-# Run the test script
-python test_api.py
-```
-
 ## Database Schema
 
-### Company Table
-- `id`: Primary key
-- `ticker`: Stock symbol (unique)
-- `company_name`: Company name
-- `last_updated`: Timestamp of last update
+**Company**
+- ticker (PK), company_name, last_updated
 
-### FinancialData Table
-- `id`: Primary key
-- `ticker`: Foreign key to Company
-- `fiscal_quarter`: Quarter (e.g., "2024-Q3")
-- `eps`: Earnings per share
-- `free_cash_flow`: Free cash flow
-- `gross_income`: Gross profit
-- `gross_margin`: Gross margin percentage
-- `net_income`: Net income
-- `net_margin`: Net margin percentage
-- `capex`: Capital expenditures
-- `cash_balance`: Cash and cash equivalents
-- `total_debt`: Total debt (short-term + long-term)
-- `data_source`: Data source (e.g., "Alpha Vantage")
-- `fetched_at`: Timestamp when data was fetched
+**FinancialData**
+- id (PK), ticker (FK, indexed), fiscal_quarter (unique with ticker)
+- eps, revenue, free_cash_flow, gross_income, gross_margin, net_income, net_margin
+- capex, cash_balance, total_debt
+- data_source, fetched_at (indexed)
+
+**StockPrice**
+- id (PK), ticker (FK, indexed), date (unique with ticker, indexed)
+- open, high, low, close, adjusted_close, volume
+- data_source, fetched_at
+
+**ValuationCache**
+- id (PK), ticker (FK, indexed), peers (unique with ticker)
+- valuation_data (JSON), calculated_at (indexed), expires_at (indexed)
 
 ## Architecture
 
 ```
-app.py                  # FastAPI application entry point
+app.py                 # FastAPI entry point
 ├── api/
-│   ├── routes.py       # API route definitions
-│   └── financial_api.py # Alpha Vantage API client
+│   ├── routes.py      # API endpoints
+│   └── financial_api.py  # Alpha Vantage client
 ├── services/
-│   └── data_service.py # Business logic and caching
-├── models.py           # SQLAlchemy database models
-├── database.py         # Database configuration
-└── config.py           # Application settings
+│   ├── data_service.py      # Financial data logic
+│   ├── valuation_service.py # Valuation calculations
+│   └── price_service.py     # Stock price fetching
+├── models.py          # SQLAlchemy models
+├── database.py        # DB configuration
+└── config.py          # Settings and constants
+```
+
+## Testing
+
+```bash
+uv run pytest
+# Or specific test
+uv run pytest test_api.py
 ```
 
 ## Notes
 
-- The application uses SQLite by default (file: `fundamentals.db`)
-- Can be configured to use PostgreSQL via `DATABASE_URL` environment variable
+- Default database: `fundamental_analysis.db` (SQLite)
+- PostgreSQL: Set `DATABASE_URL` environment variable
 - All timestamps use UTC
-- Rate limiting ensures compliance with Alpha Vantage API terms
+- Valuation methodology: See `VALUATION_README.md`

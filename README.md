@@ -1,183 +1,161 @@
-# Fundamental Analysis Tool
+# Stock Fundamental Analysis Tool
 
-A web-based tool for viewing financial data of publicly traded companies, built with FastAPI (backend) and React (frontend).
+Web-based fundamental analysis and P/E multiple-based valuation tool for publicly traded companies.
+
+**FastAPI backend + React frontend + Alpha Vantage API + SQLite caching**
 
 ## Features
 
-- **Ticker Search**: Look up financial data for any publicly traded company
-- **Data Caching**: Intelligent caching to minimize API calls and improve performance
-- **8 Quarter History**: View up to 8 quarters of historical financial data
-- **Key Metrics**: Track important metrics including:
-  - Earnings Per Share (EPS)
-  - Free Cash Flow
-  - Gross Income & Margin
-  - Net Income & Margin
-  - Capital Expenditures
-  - Cash Balance
-  - Total Debt
-- **Auto-refresh**: Automatically fetches new data if cached data is older than 30 days
-- **Manual Refresh**: Force-refresh data with a single click
+### Financial Data
+- **8 quarters** of historical financial data
+- Key metrics: EPS, Revenue, Free Cash Flow, Margins, Debt
+- Intelligent caching (30-day expiry)
+- Manual refresh on demand
+
+### Stock Valuation
+- **P/E multiple-based valuation** with 5-step methodology
+- **Dual-method forward EPS** estimation (growth + regression)
+- **Historical P/E analysis** with stock price tracking
+- **Peer comparison** analysis (customizable peer groups)
+- **Interactive charts** with expandable visualizations
+- Fair value calculation with upside/downside assessment
 
 ## Prerequisites
 
-- Python 3.9 or higher
-- Node.js 14 or higher
-- uv (Python package manager) - Install with: `pip install uv`
-- Financial Modeling Prep API key (free tier available at https://financialmodelingprep.com/)
+- **Python 3.9+** with `uv` package manager
+- **Bun** runtime for JavaScript
+- **Alpha Vantage API key** (free tier: https://www.alphavantage.co/support/#api-key)
 
-## Setup Instructions
+## Quick Setup
 
-### 1. Clone the Repository
-
-```bash
-cd fundamental-analysis
-```
-
-### 2. Backend Setup
-
-#### Create Environment File
+### 1. Environment Configuration
 
 ```bash
-cd backend
-cp .env.example .env
+# Copy environment template
+cp backend/.env.example .env
+
+# Edit .env and add your API key
+ALPHA_VANTAGE_API_KEY=your_api_key_here
 ```
 
-Edit `.env` and add your API key:
-```
-FMP_API_KEY=your_api_key_here
-```
-
-#### Install Dependencies
-
-From the project root directory:
-
-```bash
-# Activate virtual environment
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Dependencies are already installed via uv
-```
-
-### 3. Frontend Setup
-
-```bash
-cd frontend
-bun install
-```
-
-## Running the Application
-
-### Start the Backend Server
-
-From the project root directory:
+### 2. Start Backend
 
 ```bash
 cd backend
 uv run app.py
+# Runs on http://localhost:8000
+# API docs: http://localhost:8000/docs
 ```
 
-Stop the backend
-```
-ps aux | grep uvicorn | grep -v grep
-kill -9 <PID>
-
-lsof -ti:8000 # Find process that is using the port
-kill <PID>
-```
-
-The backend will start on http://localhost:8000
-
-You can view the API documentation at http://localhost:8000/docs
-
-### Start the Frontend Development Server
-
-In a new terminal:
+### 3. Start Frontend
 
 ```bash
 cd frontend
+bun install
 bun start
+# Runs on http://localhost:3000
 ```
-
-The frontend will start on http://localhost:3000
 
 ## Usage
 
-1. Open http://localhost:3000 in your browser
-2. Enter a stock ticker symbol (e.g., AAPL, MSFT, GOOGL)
-3. Click "Search" to retrieve financial data
-4. View the data in a table format showing the last 8 quarters
-5. Click "Refresh Data" to force-fetch the latest data from the API
+1. Open http://localhost:3000
+2. Enter ticker symbol (e.g., AAPL, MSFT, GOOGL)
+3. Click "Search" to load financial data
+4. Click "Calculate Valuation" to run P/E analysis
+5. Optionally add peer tickers for comparison (auto-populated from `config/peers.md`)
+6. Expand chart sections for detailed visualizations
+
+## Peer Mappings
+
+Default peer suggestions are managed in `config/peers.md`:
+
+```
+AAPL    MSFT, GOOGL, META
+AMD     NVDA, AVGO, INTC, QCOM
+```
+
+Edit this file to customize default peers. Changes take effect immediately (no rebuild needed).
 
 ## API Endpoints
 
-- `GET /api/ticker/{symbol}` - Get financial data for a ticker
-- `POST /api/ticker/{symbol}/refresh` - Force refresh data from API
+### Financial Data
+- `GET /api/ticker/{symbol}` - Get cached financial data
+- `POST /api/ticker/{symbol}/refresh` - Force refresh from API
 - `GET /api/tickers` - List all cached tickers
-- `GET /api/search?q={query}` - Search for tickers
+
+### Valuation
+- `POST /api/valuation/{symbol}` - Calculate valuation (with optional peers)
+- `GET /api/valuation/{symbol}` - Retrieve cached valuation
+
+## Architecture
+
+```
+backend/
+├── api/               # Alpha Vantage client + FastAPI routes
+├── services/          # Business logic (data, valuation, prices)
+├── models.py          # SQLAlchemy models
+├── config.py          # Configuration constants
+└── app.py            # Application entry point
+
+frontend/
+├── src/components/
+│   ├── DataTable.js          # Financial data display
+│   ├── ValuationAnalysis.js  # Valuation UI
+│   └── ValuationCharts.js    # Interactive charts
+└── public/peers.md    # Symlink to config/peers.md
+
+config/
+└── peers.md          # Peer mapping configuration
+```
+
+## Configuration
+
+Key settings in `.env`:
+
+- `ALPHA_VANTAGE_API_KEY` - Required for API access
+- `CACHE_EXPIRY_DAYS` - Financial data cache duration (default: 30)
+- `VALUATION_CACHE_HOURS` - Valuation cache duration (default: 24)
+- `FRONTEND_URL` - CORS configuration (default: http://localhost:3000)
+
+All calculation constants (P/E base, growth multipliers, etc.) are in `backend/config.py`.
 
 ## Database
 
-The application uses SQLite for local development. The database file (`fundamental_analysis.db`) will be created automatically in the backend directory when you first run the application.
+SQLite for development (`fundamental_analysis.db` auto-created in backend directory).
 
-For production deployment, you can configure PostgreSQL by setting the `DATABASE_URL` environment variable.
+For production, set `DATABASE_URL` environment variable for PostgreSQL.
 
-## Project Structure
+## API Rate Limits
 
-```
-fundamental-analysis/
-├── backend/
-│   ├── api/
-│   │   ├── __init__.py
-│   │   ├── financial_api.py    # External API client
-│   │   └── routes.py           # FastAPI routes
-│   ├── services/
-│   │   ├── __init__.py
-│   │   └── data_service.py     # Business logic & caching
-│   ├── app.py                  # FastAPI application
-│   ├── config.py               # Configuration settings
-│   ├── database.py             # Database connection
-│   ├── models.py               # SQLAlchemy models
-│   └── .env.example            # Environment variables template
-├── frontend/
-│   ├── public/
-│   │   └── index.html
-│   ├── src/
-│   │   ├── components/         # React components
-│   │   ├── services/           # API client
-│   │   ├── App.js
-│   │   ├── App.css
-│   │   ├── index.js
-│   │   └── index.css
-│   └── package.json
-└── README.md
-```
+Alpha Vantage free tier: **25 requests/day**
+
+- Rate limiting: 1.5s between calls
+- New ticker fetch: ~6 seconds (4 API calls)
+- Use caching to minimize API usage
 
 ## Troubleshooting
 
-### API Key Issues
-- Ensure your FMP API key is correctly set in the `.env` file
-- Check that you haven't exceeded the daily API limit (250 requests for free tier)
+**API Key Issues**
+- Verify `ALPHA_VANTAGE_API_KEY` in `.env`
+- Check daily limit (25 requests for free tier)
 
-### Database Issues
-- If you encounter database errors, try deleting `fundamental_analysis.db` and restarting the backend
+**Database Issues**
+- Delete `fundamental_analysis.db` and restart backend
 
-### CORS Issues
-- The backend is configured to allow requests from `http://localhost:3000`
-- If running the frontend on a different port, update `FRONTEND_URL` in the `.env` file
+**Port Conflicts**
+- Backend: port 8000
+- Frontend: port 3000
+- Kill processes: `lsof -ti:8000 | xargs kill`
 
-### Connection Issues
-- Ensure both backend (port 8000) and frontend (port 3000) servers are running
-- Check that no other applications are using these ports
+**CORS Issues**
+- Update `FRONTEND_URL` in `.env` if using different port
 
-## Future Enhancements (Phase 2 & 3)
+## Documentation
 
-- Chart visualizations with trend analysis
-- Multi-ticker comparison
-- Export functionality (CSV, Excel)
-- Technical indicators integration
-- Portfolio tracking
-- Industry peer comparison
+- `CLAUDE.md` - Development guide for Claude Code
+- `CHANGELOG.md` - Version history
+- `backend/VALUATION_README.md` - Detailed valuation methodology
 
 ## License
 
-This project is licensed under the MIT License.
+MIT License

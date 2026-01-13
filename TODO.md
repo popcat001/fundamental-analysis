@@ -14,4 +14,5 @@ Toggle checkbox	    CTRL + Shift + Enter	⌘ + ⇧ + Enter
 
 
 
+# Low Priority
 - [ ] Peer Comparison (current P/E snapshot vs historical P/E average)

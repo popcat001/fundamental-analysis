@@ -1,6 +1,20 @@
-# Stock Valuation Module
+# Valuation Module
 
-A comprehensive P/E multiple-based stock valuation system that calculates fair value price ranges using forward earnings estimates, historical P/E ratios, peer comparison, and fundamentals analysis.
+P/E multiple-based stock valuation system calculating fair value price ranges.
+
+**5-step methodology:** Forward EPS → Historical P/E → Peer Comparison → Fundamentals P/E → Fair Value
+
+## Quick Reference
+
+| Step | What It Does | Output |
+|------|-------------|--------|
+| 1. Forward EPS | Dual estimation (growth + regression) | $7.96 (recommended) |
+| 2. Historical P/E | Analyze last 5-8 quarters | Avg: 35.07, Range: 31-38 |
+| 3. Peer Comparison | Compare with industry peers | Peer avg: 29.71 |
+| 4. Fundamentals P/E | Adjust 22.0 base for metrics | Fundamentals: 18.65 |
+| 5. Fair Value | Forward EPS × Justified P/E | $210.55 ± range |
+
+**Assessment:** Undervalued (<low) | Fairly Valued (in range) | Overvalued (>high)
 
 ## Quick Start
 
@@ -60,9 +74,7 @@ Retrieve cached valuation if available and fresh.
 
 ---
 
-## Valuation Methodology
-
-The module performs a 5-step P/E multiple valuation:
+## Methodology
 
 ### 1. Forward EPS Estimation (Dual Methods)
 
@@ -115,7 +127,7 @@ If peers provided:
 
 ### 4. Fundamentals-Based P/E
 
-Start with market baseline P/E of **15.0**, then adjust:
+Start with market baseline P/E of **22.0** (S&P 500 forward P/E), then adjust:
 
 **Growth Adjustment:** `+0.5 × EPS_growth_rate × 100`
 - Rewards growth, penalizes decline
@@ -131,7 +143,7 @@ Start with market baseline P/E of **15.0**, then adjust:
 - -2 if margins declining
 - +0 otherwise
 
-**Formula:** `Fundamentals_PE = 15 + Growth_Adj + Margin_Adj + Risk_Adj`
+**Formula:** `Fundamentals_PE = 22 + Growth_Adj + Margin_Adj + Risk_Adj`
 
 **Important: Different Growth Rates in Part 1 vs Part 4**
 
@@ -293,9 +305,9 @@ Weighted average of available P/E estimates:
   },
 
   "fundamentals_analysis": {
-    "fundamentals_pe": 11.65,
+    "fundamentals_pe": 18.65,
     "components": {
-      "base_pe": 15.0,
+      "base_pe": 22.0,
       "growth_adjustment": -4.35,
       "margin_adjustment": 3,
       "risk_adjustment": -2
@@ -380,9 +392,9 @@ Weighted average of available P/E estimates:
 
 ### Fundamentals P/E
 
-- **Low P/E** (<15): Declining earnings, high risk, low margins
-- **Medium P/E** (15-25): Stable business, moderate growth
-- **High P/E** (>25): High growth, excellent margins, low risk
+- **Low P/E** (<18): Declining earnings, high risk, low margins
+- **Medium P/E** (18-28): Stable business, moderate growth
+- **High P/E** (>28): High growth, excellent margins, low risk
 
 **Interpreting Components:**
 - **Growth Adjustment**: Can be negative for declining companies
@@ -451,7 +463,7 @@ PRICE_CACHE_DAYS_HISTORICAL = 999999  # Never expire
 PRICE_CACHE_DAYS_RECENT = 1
 
 # P/E Calculation
-PE_BASE_MARKET = 15.0              # Market baseline P/E
+PE_BASE_MARKET = 22.0              # Market baseline P/E (S&P 500 forward P/E)
 PE_GROWTH_MULTIPLIER = 0.5         # Growth adjustment factor
 MIN_QUARTERS_FOR_VALUATION = 8    # Minimum data required
 ```
@@ -533,10 +545,15 @@ curl "http://localhost:8000/api/valuation/AAPL"
 
 ---
 
-## Support
+## Additional Resources
 
-For issues or questions:
-- Check logs: `backend/logs/` (if logging enabled)
-- Verify data: `GET /api/ticker/AAPL` to see available quarters
-- Refresh data: `POST /api/ticker/AAPL/refresh` to update from API
-- Review methodology: See `backend/services/valuation_service.py`
+- **Implementation**: `backend/services/valuation_service.py`
+- **Configuration**: `backend/config.py`
+- **Backend API**: `backend/backend_README.md`
+- **Development Guide**: `CLAUDE.md` (project root)
+
+## Troubleshooting
+
+- **Verify data available**: `GET /api/ticker/AAPL`
+- **Refresh stale data**: `POST /api/ticker/AAPL/refresh`
+- **Check calculations**: Review `valuation_service.py` implementation
