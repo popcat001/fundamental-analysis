@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, DECIMAL, BigInteger, DateTime, ForeignKey, UniqueConstraint, JSON
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
-from datetime import datetime
+from sqlalchemy.orm import declarative_base, relationship
+from datetime import datetime, timezone
 
 Base = declarative_base()
 
@@ -10,7 +9,7 @@ class Company(Base):
 
     ticker = Column(String(10), primary_key=True)
     company_name = Column(String(255))
-    last_updated = Column(DateTime, default=datetime.utcnow)
+    last_updated = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     financial_data = relationship("FinancialData", back_populates="company")
@@ -24,7 +23,7 @@ class FinancialData(Base):
     __tablename__ = 'financial_data'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    ticker = Column(String(10), ForeignKey('companies.ticker'), nullable=False)
+    ticker = Column(String(10), ForeignKey('companies.ticker'), nullable=False, index=True)
     fiscal_quarter = Column(String(10), nullable=False)  # e.g., '2024-Q3'
     fiscal_date = Column(String(10))  # e.g., '2024-09-30'
     reported_date = Column(String(10))  # e.g., '2024-10-31' - when earnings were reported
@@ -39,7 +38,7 @@ class FinancialData(Base):
     cash_balance = Column(BigInteger)
     total_debt = Column(BigInteger)
     data_source = Column(String(50))
-    fetched_at = Column(DateTime, default=datetime.utcnow)
+    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
     # Relationship
     company = relationship("Company", back_populates="financial_data")
@@ -56,8 +55,8 @@ class StockPrice(Base):
     __tablename__ = 'stock_prices'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    ticker = Column(String(10), ForeignKey('companies.ticker'), nullable=False)
-    date = Column(String(10), nullable=False)  # YYYY-MM-DD format
+    ticker = Column(String(10), ForeignKey('companies.ticker'), nullable=False, index=True)
+    date = Column(String(10), nullable=False, index=True)  # YYYY-MM-DD format
     open = Column(DECIMAL(10, 2))
     high = Column(DECIMAL(10, 2))
     low = Column(DECIMAL(10, 2))
@@ -65,7 +64,7 @@ class StockPrice(Base):
     adjusted_close = Column(DECIMAL(10, 2))
     volume = Column(BigInteger)
     data_source = Column(String(50), default='yfinance')
-    fetched_at = Column(DateTime, default=datetime.utcnow)
+    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationship
     company = relationship("Company", back_populates="stock_prices")
@@ -82,7 +81,7 @@ class ValuationCache(Base):
     __tablename__ = 'valuation_cache'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    ticker = Column(String(10), ForeignKey('companies.ticker'), nullable=False)
+    ticker = Column(String(10), ForeignKey('companies.ticker'), nullable=False, index=True)
     peers = Column(String(255))  # Comma-separated list of peer tickers
 
     # Forward EPS estimates
@@ -107,8 +106,8 @@ class ValuationCache(Base):
     valuation_data = Column(JSON)  # Complete valuation report for charts
 
     # Metadata
-    calculated_at = Column(DateTime, default=datetime.utcnow)
-    expires_at = Column(DateTime)  # For cache invalidation
+    calculated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    expires_at = Column(DateTime, index=True)  # For cache invalidation
 
     # Relationship
     company = relationship("Company", back_populates="valuations")

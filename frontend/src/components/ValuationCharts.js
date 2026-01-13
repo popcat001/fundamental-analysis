@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ComposedChart, Cell
@@ -69,7 +70,7 @@ function ValuationCharts({ valuation }) {
     return (
       <div className="chart-section">
         <h5 onClick={() => toggleSection('forwardEPS')} className="chart-header">
-          📊 Forward EPS: Historical & Projected (Dual Methods)
+          Forward EPS: Historical & Projected (Dual Methods)
           <span className="toggle-icon">{expandedSections.forwardEPS ? '▼' : '▶'}</span>
         </h5>
         {expandedSections.forwardEPS && (
@@ -183,7 +184,7 @@ function ValuationCharts({ valuation }) {
     return (
       <div className="chart-section">
         <h5 onClick={() => toggleSection('historicalPE')} className="chart-header">
-          📊 Historical P/E Ratios (Last {chartData.length} Quarters)
+          Historical P/E Ratios (Last {chartData.length} Quarters)
           <span className="toggle-icon">{expandedSections.historicalPE ? '▼' : '▶'}</span>
         </h5>
         {expandedSections.historicalPE && (
@@ -251,7 +252,7 @@ function ValuationCharts({ valuation }) {
     return (
       <div className="chart-section">
         <h5 onClick={() => toggleSection('peerComparison')} className="chart-header">
-          📊 Peer P/E Comparison
+          Peer P/E Comparison
           <span className="toggle-icon">{expandedSections.peerComparison ? '▼' : '▶'}</span>
         </h5>
         {expandedSections.peerComparison && (
@@ -293,7 +294,7 @@ function ValuationCharts({ valuation }) {
     return (
       <div className="chart-section">
         <h5 onClick={() => toggleSection('fundamentals')} className="chart-header">
-          📊 Fundamentals: Quarterly Metrics Trends
+          Fundamentals: Quarterly Metrics Trends
           <span className="toggle-icon">{expandedSections.fundamentals ? '▼' : '▶'}</span>
         </h5>
         {expandedSections.fundamentals && (
@@ -366,7 +367,7 @@ function ValuationCharts({ valuation }) {
 
   return (
     <div className="valuation-charts">
-      <h4 className="charts-title">📈 Detailed Data Visualization (Click to Expand)</h4>
+      <h4 className="charts-title">Detailed Data Visualization (Click to Expand)</h4>
       {renderForwardEPSChart()}
       {renderHistoricalPEChart()}
       {renderPeerComparisonChart()}
@@ -374,5 +375,9 @@ function ValuationCharts({ valuation }) {
     </div>
   );
 }
+
+ValuationCharts.propTypes = {
+  valuation: PropTypes.object.isRequired
+};
 
 export default ValuationCharts;

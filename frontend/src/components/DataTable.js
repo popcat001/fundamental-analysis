@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import './DataTable.css';
 
 function DataTable({ data }) {
@@ -8,12 +9,6 @@ function DataTable({ data }) {
 
   // Sort data by quarter (oldest to newest)
   const sortedData = [...data].sort((a, b) => a.quarter.localeCompare(b.quarter));
-
-  // Format number with thousand separators
-  const formatNumber = (num) => {
-    if (num === null || num === undefined) return 'N/A';
-    return new Intl.NumberFormat('en-US').format(num);
-  };
 
   // Format currency in millions
   const formatMillion = (num) => {
@@ -116,5 +111,9 @@ function DataTable({ data }) {
     </div>
   );
 }
+
+DataTable.propTypes = {
+  data: PropTypes.arrayOf(PropTypes.object).isRequired
+};
 
 export default DataTable;

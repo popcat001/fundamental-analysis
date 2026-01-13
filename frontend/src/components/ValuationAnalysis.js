@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import './ValuationAnalysis.css';
 import ValuationCharts from './ValuationCharts';
 
@@ -24,6 +25,18 @@ function parsePeersMd(content) {
   }
 
   return peers;
+}
+
+// Parse peer input string into array or null
+function parsePeersInput(peerInput) {
+  if (!peerInput) return null;
+
+  const peers = peerInput
+    .split(',')
+    .map(p => p.trim().toUpperCase())
+    .filter(p => p.length > 0);
+
+  return peers.length > 0 ? peers : null;
 }
 
 function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
@@ -82,19 +95,17 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
               className="peer-input"
             />
             <small>
-              {peerInput && defaultPeers[symbol?.toUpperCase()] === peerInput
-                ? '✓ Auto-populated peers (editable)'
-                : 'Leave blank for valuation without peer comparison'}
+              {peersLoading && 'Loading default peers...'}
+              {peersError && <span className="error">Could not load default peers</span>}
+              {!peersLoading && !peersError && (
+                peerInput && defaultPeers[symbol?.toUpperCase()] === peerInput
+                  ? '✓ Auto-populated peers (editable)'
+                  : 'Leave blank for valuation without peer comparison'
+              )}
             </small>
           </div>
           <button
-            onClick={() => {
-              const peers = peerInput
-                .split(',')
-                .map(p => p.trim().toUpperCase())
-                .filter(p => p.length > 0);
-              onCalculate(peers.length > 0 ? peers : null);
-            }}
+            onClick={() => onCalculate(parsePeersInput(peerInput))}
             disabled={loading}
             className="calculate-button"
           >
@@ -126,13 +137,7 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
       <div className="valuation-header">
         <h3>Valuation Analysis</h3>
         <button
-          onClick={() => {
-            const peers = peerInput
-              .split(',')
-              .map(p => p.trim().toUpperCase())
-              .filter(p => p.length > 0);
-            onCalculate(peers.length > 0 ? peers : null);
-          }}
+          onClick={() => onCalculate(parsePeersInput(peerInput))}
           disabled={loading}
           className="recalculate-button"
         >
@@ -332,5 +337,12 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
     </div>
   );
 }
+
+ValuationAnalysis.propTypes = {
+  symbol: PropTypes.string.isRequired,
+  valuation: PropTypes.object,
+  onCalculate: PropTypes.func.isRequired,
+  loading: PropTypes.bool.isRequired
+};
 
 export default ValuationAnalysis;
