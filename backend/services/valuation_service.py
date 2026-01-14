@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from models import FinancialData, ValuationCache, Company
 from services.data_service import DataService
 from services.price_service import PriceService
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 import numpy as np
 import logging
@@ -101,7 +101,7 @@ class ValuationService:
             report = {
                 'symbol': symbol,
                 'company_name': company_name,
-                'valuation_date': datetime.utcnow().isoformat(),
+                'valuation_date': datetime.now(timezone.utc).isoformat(),
 
                 'current_metrics': {
                     'current_price': round(current_price, 2),
@@ -122,7 +122,7 @@ class ValuationService:
                 'fair_value': fair_value,
 
                 'metadata': {
-                    'calculation_date': datetime.utcnow().isoformat(),
+                    'calculation_date': datetime.now(timezone.utc).isoformat(),
                     'quarters_analyzed': len(financial_data)
                 }
             }
@@ -634,8 +634,9 @@ class ValuationService:
             peer_comparison = report.get('peer_comparison')
             fundamentals = report['fundamentals_analysis']
 
-            # Set expiration (24 hours from now)
-            expires_at = datetime.utcnow() + timedelta(hours=settings.VALUATION_CACHE_HOURS)
+            # Set expiration (24 hours from now) - store as naive UTC in database
+            now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+            expires_at = now_utc + timedelta(hours=settings.VALUATION_CACHE_HOURS)
 
             if existing:
                 # Update existing cache
@@ -650,7 +651,7 @@ class ValuationService:
                 existing.fair_value_low = fair_value['fair_value_low']
                 existing.fair_value_high = fair_value['fair_value_high']
                 existing.valuation_data = report  # Store full report for visualization
-                existing.calculated_at = datetime.utcnow()
+                existing.calculated_at = now_utc
                 existing.expires_at = expires_at
             else:
                 # Create new cache entry
@@ -668,7 +669,7 @@ class ValuationService:
                     fair_value_low=fair_value['fair_value_low'],
                     fair_value_high=fair_value['fair_value_high'],
                     valuation_data=report,  # Store full report for visualization
-                    calculated_at=datetime.utcnow(),
+                    calculated_at=now_utc,
                     expires_at=expires_at
                 )
                 self.db.add(cache_entry)

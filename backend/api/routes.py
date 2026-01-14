@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Dict, Optional
 from pydantic import BaseModel
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from database import get_db
 from services.data_service import DataService
 from services.valuation_service import ValuationService
@@ -258,11 +258,12 @@ def get_cached_valuation(
     peer_list = [p.strip().upper() for p in peers.split(',')] if peers else []
     peer_str = ','.join(sorted(peer_list))
 
-    # Query cache
+    # Query cache (use naive datetime for database comparison)
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
     cache = db.query(ValuationCache).filter(
         ValuationCache.ticker == symbol,
         ValuationCache.peers == peer_str,
-        ValuationCache.expires_at > datetime.utcnow()
+        ValuationCache.expires_at > now_utc
     ).first()
 
     if not cache:

@@ -9,7 +9,7 @@ class Company(Base):
 
     ticker = Column(String(10), primary_key=True)
     company_name = Column(String(255))
-    last_updated = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    last_updated = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
 
     # Relationships
     financial_data = relationship("FinancialData", back_populates="company")
@@ -38,7 +38,7 @@ class FinancialData(Base):
     cash_balance = Column(BigInteger)
     total_debt = Column(BigInteger)
     data_source = Column(String(50))
-    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), index=True)
 
     # Relationship
     company = relationship("Company", back_populates="financial_data")
@@ -64,7 +64,7 @@ class StockPrice(Base):
     adjusted_close = Column(DECIMAL(10, 2))
     volume = Column(BigInteger)
     data_source = Column(String(50), default='yfinance')
-    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    fetched_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
 
     # Relationship
     company = relationship("Company", back_populates="stock_prices")
@@ -106,7 +106,7 @@ class ValuationCache(Base):
     valuation_data = Column(JSON)  # Complete valuation report for charts
 
     # Metadata
-    calculated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    calculated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), index=True)
     expires_at = Column(DateTime, index=True)  # For cache invalidation
 
     # Relationship

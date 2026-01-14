@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from models import Company, FinancialData
 from api.financial_api import FinancialAPIClient
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
 import pandas as pd
 import logging
@@ -98,7 +98,12 @@ class DataService:
 
         # Check the most recent fetch time
         latest_fetch = max(d.fetched_at for d in data)
-        age_days = (datetime.utcnow() - latest_fetch).days
+
+        # Make timezone-aware if needed (database stores as UTC)
+        if latest_fetch.tzinfo is None:
+            latest_fetch = latest_fetch.replace(tzinfo=timezone.utc)
+
+        age_days = (datetime.now(timezone.utc) - latest_fetch).days
 
         return age_days < settings.CACHE_EXPIRY_DAYS
 
@@ -179,10 +184,11 @@ class DataService:
     def _store_in_cache(self, symbol: str, data: List[Dict]):
         """Store financial data in database cache"""
         try:
-            # Update company last_updated timestamp
+            # Update company last_updated timestamp (store as naive UTC)
+            now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
             company = self.db.query(Company).filter(Company.ticker == symbol).first()
             if company:
-                company.last_updated = datetime.utcnow()
+                company.last_updated = now_utc
                 logger.info(f"Updated last_updated for {symbol}")
 
             for record in data:
@@ -198,7 +204,7 @@ class DataService:
                     for key, value in record.items():
                         if key != 'fiscal_quarter':
                             setattr(existing, key, value)
-                    existing.fetched_at = datetime.utcnow()
+                    existing.fetched_at = now_utc
                 else:
                     # Create new record
                     logger.info(f"Creating new record for {symbol} {record['fiscal_quarter']}")

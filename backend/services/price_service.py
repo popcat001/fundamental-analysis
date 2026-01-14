@@ -7,9 +7,10 @@ using the database as a cache and fetching from yfinance when needed.
 from sqlalchemy.orm import Session
 from models import StockPrice, Company
 from api.stock_price_api import StockPriceAPIClient
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 import logging
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -192,6 +193,9 @@ class PriceService:
                 StockPrice.date == price_data['date']
             ).first()
 
+            # Store as naive UTC in database
+            now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+
             if existing:
                 # Update existing
                 existing.open = price_data['open']
@@ -200,7 +204,7 @@ class PriceService:
                 existing.close = price_data['close']
                 existing.adjusted_close = price_data['adjusted_close']
                 existing.volume = price_data['volume']
-                existing.fetched_at = datetime.utcnow()
+                existing.fetched_at = now_utc
             else:
                 # Create new
                 stock_price = StockPrice(
@@ -213,7 +217,7 @@ class PriceService:
                     adjusted_close=price_data['adjusted_close'],
                     volume=price_data['volume'],
                     data_source='yfinance',
-                    fetched_at=datetime.utcnow()
+                    fetched_at=now_utc
                 )
                 self.db.add(stock_price)
 
@@ -243,9 +247,13 @@ class PriceService:
         if not fetched_at:
             return False
 
-        # Parse the price date
-        price_date = datetime.strptime(date, '%Y-%m-%d')
-        today = datetime.utcnow()
+        # Parse the price date and make timezone-aware
+        price_date = datetime.strptime(date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+        today = datetime.now(timezone.utc)
+
+        # Make fetched_at timezone-aware if needed (database stores as UTC)
+        if fetched_at.tzinfo is None:
+            fetched_at = fetched_at.replace(tzinfo=timezone.utc)
 
         # How old is the price data itself?
         data_age_days = (today - price_date).days
