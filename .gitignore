@@ -13,3 +13,4 @@ wheels/
 # Node modules and cache
 node_modules/
 .cache/
+.chat/*

@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-01-15
+
+### Added
+- Interactive fair value calculation with editable parameters
+- Real-time fair value updates based on user modifications
+- Formula display: `Fair Value = EPS × (w₁ × PE₁ + w₂ × PE₂ + w₃ × PE₃)`
+- 3-column compact layout for valuation parameters
+
+### Changed
+- Moved fair value calculation from Section 6 to Section 1 (top priority)
+- All valuation parameters now directly editable (EPS, P/E ratios, weights)
+- Weight inputs formatted to 2 decimal places
+- Removed spinner arrows from number inputs for cleaner interface
+- Renumbered valuation steps (Forward EPS now Section 2, etc.)
+
 ## [0.4.0] - 2026-01-12
 
 ### Changed
