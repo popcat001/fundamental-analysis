@@ -303,6 +303,119 @@
   font-size: 0.875rem;
 }
 
+/* Fair Value Formula Section */
+.formula-section {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+}
+
+.formula-display {
+  text-align: center;
+}
+
+.formula-display strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+.formula-expression {
+  font-family: 'Courier New', monospace;
+  font-size: 1.1rem;
+  color: #27ae60;
+  font-weight: 600;
+  padding: 0.75rem;
+  background-color: white;
+  border-radius: 4px;
+  border: 2px solid #27ae60;
+}
+
+/* Editable Parameters */
+.editable-params {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.params-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.param-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.param-column h5 {
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 0.3rem;
+}
+
+.param-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.param-row label {
+  flex: 1;
+  font-weight: 500;
+  color: #495057;
+  font-size: 0.875rem;
+}
+
+.param-input {
+  width: 110px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: right;
+  background-color: white;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.param-input:focus {
+  outline: none;
+  border-color: #27ae60;
+  box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.1);
+}
+
+.param-input::-webkit-inner-spin-button,
+.param-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.param-input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.weight-sum {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: white;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: 600;
+  color: #2c3e50;
+  border: 2px solid #3498db;
+  font-size: 0.875rem;
+}
+
 @media (max-width: 768px) {
   .current-summary {
     flex-direction: column;
@@ -328,5 +441,31 @@
 
   .reset-peers-button {
     width: 100%;
+  }
+
+  .formula-expression {
+    font-size: 0.95rem;
+  }
+
+  .editable-params {
+    padding: 1rem;
+  }
+
+  .params-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .param-row {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .param-row label {
+    font-size: 0.85rem;
+  }
+
+  .param-input {
+    width: 100px;
   }
 }

@@ -45,6 +45,17 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
   const [peersLoading, setPeersLoading] = useState(true);
   const [peersError, setPeersError] = useState(null);
 
+  // Editable valuation parameters
+  const [editableParams, setEditableParams] = useState({
+    forwardEps: 0,
+    historicalPE: 0,
+    peerPE: 0,
+    fundamentalsPE: 0,
+    weightHistorical: 0,
+    weightPeer: 0,
+    weightFundamentals: 0
+  });
+
   // Load peer mappings from peers.md on mount
   useEffect(() => {
     setPeersLoading(true);
@@ -75,6 +86,56 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
       // or clear it if you prefer: setPeerInput('');
     }
   }, [symbol, defaultPeers]);
+
+  // Initialize editable parameters when valuation data changes
+  useEffect(() => {
+    if (valuation) {
+      const hasPeers = valuation.peer_comparison?.peer_pe_ratios || valuation.peer_comparison?.peers;
+      const weights = valuation.justified_pe?.weighting || {};
+
+      setEditableParams({
+        forwardEps: valuation.forward_eps?.recommended || 0,
+        historicalPE: valuation.historical_pe?.median || 0,
+        peerPE: valuation.peer_comparison?.average_pe || 0,
+        fundamentalsPE: valuation.fundamentals_analysis?.fundamentals_pe || valuation.fundamentals_pe || 0,
+        weightHistorical: weights.historical || 0,
+        weightPeer: hasPeers ? (weights.peer || 0) : 0,
+        weightFundamentals: weights.fundamentals || 0
+      });
+    }
+  }, [valuation]);
+
+  // Handle parameter change
+  const handleParamChange = (param, value) => {
+    setEditableParams(prev => ({
+      ...prev,
+      [param]: parseFloat(value) || 0
+    }));
+  };
+
+  // Calculate fair value based on editable parameters
+  const calculateEditableFairValue = () => {
+    const { forwardEps, historicalPE, peerPE, fundamentalsPE, weightHistorical, weightPeer, weightFundamentals } = editableParams;
+    const hasPeers = valuation?.peer_comparison?.peer_pe_ratios || valuation?.peer_comparison?.peers;
+
+    // Weighted P/E calculation
+    let weightedPE;
+    if (hasPeers) {
+      weightedPE = (weightHistorical * historicalPE) + (weightPeer * peerPE) + (weightFundamentals * fundamentalsPE);
+    } else {
+      weightedPE = (weightHistorical * historicalPE) + (weightFundamentals * fundamentalsPE);
+    }
+
+    // Fair value = EPS × Weighted P/E
+    const fairValue = forwardEps * weightedPE;
+
+    return {
+      fairValue,
+      weightedPE,
+      currentPrice: valuation?.fair_value?.current_price || 0,
+      upside: valuation?.fair_value?.current_price ? ((fairValue - valuation.fair_value.current_price) / valuation.fair_value.current_price * 100) : 0
+    };
+  };
 
   if (!valuation) {
     return (
@@ -170,9 +231,144 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
       {/* Step-by-Step Valuation Report */}
       <div className="valuation-steps">
 
-        {/* Step 1: Forward EPS */}
+        {/* Step 1: Fair Value Calculation */}
+        <div className="valuation-step final-step">
+          <h4><span className="step-number">1.</span> Fair Value Calculation</h4>
+
+          {/* Formula Display */}
+          <div className="formula-section">
+            <div className="formula-display">
+              <strong>Formula:</strong>
+              <div className="formula-expression">
+                Fair Value = EPS × (w₁ × PE₁ + {valuation.peer_comparison?.peer_pe_ratios && 'w₂ × PE₂ + '}w₃ × PE₃)
+              </div>
+            </div>
+          </div>
+
+          {/* Editable Parameters */}
+          <div className="editable-params">
+            <div className="params-grid">
+              {/* Column 1: Forward EPS */}
+              <div className="param-column">
+                <h5>Forward EPS:</h5>
+                <div className="param-row">
+                  <label>EPS:</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editableParams.forwardEps}
+                    onChange={(e) => handleParamChange('forwardEps', e.target.value)}
+                    className="param-input"
+                  />
+                </div>
+              </div>
+
+              {/* Column 2: P/E Ratios */}
+              <div className="param-column">
+                <h5>P/E Ratios:</h5>
+                <div className="param-row">
+                  <label>PE₁ (Historical):</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editableParams.historicalPE}
+                    onChange={(e) => handleParamChange('historicalPE', e.target.value)}
+                    className="param-input"
+                  />
+                </div>
+                {valuation.peer_comparison?.peer_pe_ratios && (
+                  <div className="param-row">
+                    <label>PE₂ (Peer Avg):</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editableParams.peerPE}
+                      onChange={(e) => handleParamChange('peerPE', e.target.value)}
+                      className="param-input"
+                    />
+                  </div>
+                )}
+                <div className="param-row">
+                  <label>PE₃ (Fundamentals):</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editableParams.fundamentalsPE}
+                    onChange={(e) => handleParamChange('fundamentalsPE', e.target.value)}
+                    className="param-input"
+                  />
+                </div>
+              </div>
+
+              {/* Column 3: Weights */}
+              <div className="param-column">
+                <h5>Weights (sum to 1.0):</h5>
+                <div className="param-row">
+                  <label>w₁ (Historical):</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1"
+                    value={editableParams.weightHistorical.toFixed(2)}
+                    onChange={(e) => handleParamChange('weightHistorical', e.target.value)}
+                    className="param-input"
+                  />
+                </div>
+                {valuation.peer_comparison?.peer_pe_ratios && (
+                  <div className="param-row">
+                    <label>w₂ (Peer):</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1"
+                      value={editableParams.weightPeer.toFixed(2)}
+                      onChange={(e) => handleParamChange('weightPeer', e.target.value)}
+                      className="param-input"
+                    />
+                  </div>
+                )}
+                <div className="param-row">
+                  <label>w₃ (Fundamentals):</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1"
+                    value={editableParams.weightFundamentals.toFixed(2)}
+                    onChange={(e) => handleParamChange('weightFundamentals', e.target.value)}
+                    className="param-input"
+                  />
+                </div>
+                <div className="weight-sum">
+                  Sum: {(editableParams.weightHistorical + editableParams.weightPeer + editableParams.weightFundamentals).toFixed(2)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Calculated Results */}
+          <ul className="step-list">
+            <li className="highlight-item">
+              <strong>Weighted P/E:</strong> {calculateEditableFairValue().weightedPE.toFixed(2)}
+            </li>
+            <li className="highlight-item">
+              <strong>Fair Value:</strong> {formatCurrency(calculateEditableFairValue().fairValue)}
+            </li>
+            <li><strong>Current Price:</strong> {formatCurrency(calculateEditableFairValue().currentPrice)}</li>
+            <li>
+              <strong>Upside:</strong>
+              <span className={calculateEditableFairValue().upside >= 0 ? 'positive-upside' : 'negative-upside'}>
+                {' '}{calculateEditableFairValue().upside.toFixed(2)}%
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        {/* Step 2: Forward EPS */}
         <div className="valuation-step">
-          <h4><span className="step-number">1.</span> Forward EPS Calculation (Dual Methods)
+          <h4><span className="step-number">2.</span> Forward EPS Calculation (Dual Methods)
             {valuation.forward_eps?.growth_method?.historical_eps?.length &&
               ` (${valuation.forward_eps.growth_method.historical_eps.length} quarters)`}
           </h4>
@@ -195,9 +391,9 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
           </ul>
         </div>
 
-        {/* Step 2: Historical P/E */}
+        {/* Step 3: Historical P/E */}
         <div className="valuation-step">
-          <h4><span className="step-number">2.</span> Historical P/E Analysis ({valuation.historical_pe?.pe_ratios?.length || 5} quarters)</h4>
+          <h4><span className="step-number">3.</span> Historical P/E Analysis ({valuation.historical_pe?.pe_ratios?.length || 5} quarters)</h4>
           <ul className="step-list">
             <li><strong>Average:</strong> {valuation.historical_pe?.average?.toFixed(2) || 'N/A'}</li>
             <li><strong>Median:</strong> {valuation.historical_pe?.median?.toFixed(2) || 'N/A'}</li>
@@ -205,11 +401,11 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
           </ul>
         </div>
 
-        {/* Step 3: Peer Comparison */}
+        {/* Step 4: Peer Comparison */}
         {(valuation.peer_comparison?.peer_pe_ratios || valuation.peer_comparison?.peers) && (
           <div className="valuation-step">
             <h4>
-              <span className="step-number">3.</span> Peer Comparison (
+              <span className="step-number">4.</span> Peer Comparison (
               {valuation.peer_comparison.peer_pe_ratios?.map(p => p.ticker).join(', ') ||
                valuation.peer_comparison.peers?.join(', ')}
               )
@@ -227,9 +423,9 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
           </div>
         )}
 
-        {/* Step 4: Fundamentals */}
+        {/* Step 5: Fundamentals */}
         <div className="valuation-step">
-          <h4><span className="step-number">{valuation.peer_comparison?.peer_pe_ratios ? '4' : '3'}.</span> Fundamentals-Based P/E
+          <h4><span className="step-number">{valuation.peer_comparison?.peer_pe_ratios ? '5' : '4'}.</span> Fundamentals-Based P/E
             {valuation.fundamentals_analysis?.quarterly_metrics?.length &&
               ` (${valuation.fundamentals_analysis.quarterly_metrics.length} quarters)`}
           </h4>
@@ -259,9 +455,9 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
           </ul>
         </div>
 
-        {/* Step 5: Justified P/E */}
+        {/* Step 6: Justified P/E */}
         <div className="valuation-step">
-          <h4><span className="step-number">{valuation.peer_comparison?.peer_pe_ratios ? '5' : '4'}.</span> Justified P/E Synthesis</h4>
+          <h4><span className="step-number">{valuation.peer_comparison?.peer_pe_ratios ? '6' : '5'}.</span> Justified P/E Synthesis</h4>
           <ul className="step-list">
             <li><strong>Range:</strong> {valuation.justified_pe?.justified_pe_low?.toFixed(2) || valuation.justified_pe?.low?.toFixed(2)} - {valuation.justified_pe?.justified_pe_high?.toFixed(2) || valuation.justified_pe?.high?.toFixed(2)}</li>
             <li className="highlight-item">
@@ -274,30 +470,6 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
                 , {(valuation.justified_pe.weighting.fundamentals * 100).toFixed(0)}% fundamentals
               </li>
             )}
-          </ul>
-        </div>
-
-        {/* Step 6: Fair Value */}
-        <div className="valuation-step final-step">
-          <h4><span className="step-number">{valuation.peer_comparison?.peer_pe_ratios ? '6' : '5'}.</span> Fair Value Calculation</h4>
-          <ul className="step-list">
-            <li><strong>Fair value range:</strong> {formatCurrency(valuation.fair_value?.fair_value_low || valuation.fair_value?.low)} - {formatCurrency(valuation.fair_value?.fair_value_high || valuation.fair_value?.high)}</li>
-            <li className="highlight-item">
-              <strong>Midpoint:</strong> {formatCurrency(valuation.fair_value?.fair_value_midpoint || valuation.fair_value?.midpoint)}
-            </li>
-            <li><strong>Current price:</strong> {formatCurrency(valuation.fair_value?.current_price)}</li>
-            <li>
-              <strong>Upside:</strong>
-              <span className={valuation.fair_value?.upside_percent >= 0 ? 'positive-upside' : 'negative-upside'}>
-                {' '}{valuation.fair_value?.upside_percent?.toFixed(2)}%
-              </span>
-            </li>
-            <li className="assessment-item">
-              <strong>Assessment:</strong>
-              <span className={`assessment-badge ${getAssessmentClass(valuation.fair_value?.assessment)}`}>
-                {valuation.fair_value?.assessment || 'N/A'}
-              </span>
-            </li>
           </ul>
         </div>
 
