@@ -38,14 +38,24 @@ cp backend/.env.example .env
 ALPHA_VANTAGE_API_KEY=your_api_key_here
 ```
 
-### 2. Run
+### 2. Backend
 
 ```bash
-# Backend (http://localhost:8000)
-cd backend && uv run app.py
+# Install dependencies
+uv sync --project backend
 
-# Frontend (http://localhost:3000)
-cd frontend && bun install && bun start
+# Run (http://localhost:8000)
+uv run --project backend backend/app.py
+```
+
+### 3. Frontend
+
+```bash
+# Install dependencies
+bun install --cwd frontend
+
+# Run (http://localhost:3000)
+bun --cwd frontend start
 ```
 
 Open http://localhost:3000, enter a ticker (e.g., AAPL), click **Search** to load financials, then **Calculate Valuation** for P/E analysis. Peers are auto-populated from `config/peers.md` and chart sections are expandable.

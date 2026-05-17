@@ -10,6 +10,9 @@ wheels/
 .venv
 .env
 
+# Database
+*.db
+
 # Node modules and cache
 node_modules/
 .cache/
