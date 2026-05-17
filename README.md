@@ -38,32 +38,17 @@ cp backend/.env.example .env
 ALPHA_VANTAGE_API_KEY=your_api_key_here
 ```
 
-### 2. Start Backend
+### 2. Run
 
 ```bash
-cd backend
-uv run app.py
-# Runs on http://localhost:8000
-# API docs: http://localhost:8000/docs
+# Backend (http://localhost:8000)
+cd backend && uv run app.py
+
+# Frontend (http://localhost:3000)
+cd frontend && bun install && bun start
 ```
 
-### 3. Start Frontend
-
-```bash
-cd frontend
-bun install
-bun start
-# Runs on http://localhost:3000
-```
-
-## Usage
-
-1. Open http://localhost:3000
-2. Enter ticker symbol (e.g., AAPL, MSFT, GOOGL)
-3. Click "Search" to load financial data
-4. Click "Calculate Valuation" to run P/E analysis
-5. Optionally add peer tickers for comparison (auto-populated from `config/peers.md`)
-6. Expand chart sections for detailed visualizations
+Open http://localhost:3000, enter a ticker (e.g., AAPL), click **Search** to load financials, then **Calculate Valuation** for P/E analysis. Peers are auto-populated from `config/peers.md` and chart sections are expandable.
 
 ## Peer Mappings
 

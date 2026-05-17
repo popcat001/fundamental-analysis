@@ -1,0 +1,1 @@
+1. Deploy this project to AWS EC2

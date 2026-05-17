@@ -206,6 +206,35 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
         </button>
       </div>
 
+      {/* Peer Input for Recalculation */}
+      <div className="peer-recalc-section">
+        <label htmlFor="peers-recalc">Update Peer Tickers:</label>
+        <div className="peer-input-controls">
+          <input
+            id="peers-recalc"
+            type="text"
+            placeholder="e.g., MSFT, GOOGL, META"
+            value={peerInput}
+            onChange={(e) => setPeerInput(e.target.value)}
+            className="peer-input"
+          />
+          {defaultPeers[symbol?.toUpperCase()] && (
+            <button
+              onClick={() => setPeerInput(defaultPeers[symbol.toUpperCase()])}
+              className="reset-peers-button"
+              title="Reset to default peers"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+        <small>
+          {peerInput && defaultPeers[symbol?.toUpperCase()] === peerInput
+            ? '✓ Using default peers for ' + symbol
+            : 'Modify and click Recalculate to update'}
+        </small>
+      </div>
+
       {valuation.cached && (
         <div className="cache-notice">
           Cached result from {new Date(valuation.calculated_at || valuation.valuation_date).toLocaleString()}
@@ -477,35 +506,6 @@ function ValuationAnalysis({ symbol, valuation, onCalculate, loading }) {
 
       {/* Detailed Data Visualization Charts */}
       <ValuationCharts valuation={valuation} />
-
-      {/* Peer Input for Recalculation */}
-      <div className="peer-recalc-section">
-        <label htmlFor="peers-recalc">Update Peer Tickers:</label>
-        <div className="peer-input-controls">
-          <input
-            id="peers-recalc"
-            type="text"
-            placeholder="e.g., MSFT, GOOGL, META"
-            value={peerInput}
-            onChange={(e) => setPeerInput(e.target.value)}
-            className="peer-input"
-          />
-          {defaultPeers[symbol?.toUpperCase()] && (
-            <button
-              onClick={() => setPeerInput(defaultPeers[symbol.toUpperCase()])}
-              className="reset-peers-button"
-              title="Reset to default peers"
-            >
-              Reset
-            </button>
-          )}
-        </div>
-        <small>
-          {peerInput && defaultPeers[symbol?.toUpperCase()] === peerInput
-            ? '✓ Using default peers for ' + symbol
-            : 'Modify and click Recalculate to update'}
-        </small>
-      </div>
     </div>
   );
 }
