@@ -127,6 +127,7 @@ Alpha Vantage free tier: **25 requests/day**
 - Rate limiting: 1.5s between calls
 - New ticker fetch: ~6 seconds (4 API calls)
 - Use caching to minimize API usage
+- **When the limit is hit, all API responses return empty — tickers will return 404 and refresh will fail silently. Reset occurs at midnight UTC.**
 
 ## Troubleshooting
 
