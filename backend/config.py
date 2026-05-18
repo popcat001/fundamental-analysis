@@ -29,6 +29,9 @@ class Settings:
     # Request Timeouts
     API_REQUEST_TIMEOUT = 15  # seconds (increased to account for rate limiting)
 
+    # Server
+    PORT = int(os.getenv("PORT", "8001"))
+
     # Frontend URL for CORS
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
